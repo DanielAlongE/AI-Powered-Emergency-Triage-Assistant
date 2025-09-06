@@ -1,0 +1,7 @@
+gradio
+numpy
+ollama
+python-dotenv
+torch
+typing
+transformers
