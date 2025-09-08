@@ -5,14 +5,14 @@ from models.transcription.whisper_transcriber import WhisperTranscriber
 
 def transcribe(audio):
     transcriber = WhisperTranscriber()
-    return transcriber.transcribe(audio)
-
-def onchange(input):
-    print(input)
-    return gr.Markdown(markdown_wrapper(input))
+    text = transcriber.transcribe(audio)
+    return gr.Markdown(markdown_wrapper(text))
 
 def highlighted(text):
     return f'<span style="background-color: yellow;">{text}</span>'
+
+def handle_clear():
+    return [gr.Markdown(markdown_wrapper('')), gr.Audio(sources=["microphone", "upload"], type="numpy")]
 
 list_of_words = [
     'ache',
@@ -49,22 +49,16 @@ def markdown_wrapper(content):
 with gr.Blocks() as demo:
     with gr.Row():
         with gr.Column():
-            audio = gr.Audio(sources=["microphone", "upload"], type="numpy", streaming=True)
+            audio = gr.Audio(sources=["microphone", "upload"], type="numpy")
         with gr.Column():
-            text = gr.Markdown(markdown_wrapper('# Smart 1'))
-            input = gr.TextArea()
-    audio.input(transcribe, inputs=audio, outputs=input)
+            text = gr.Markdown(markdown_wrapper(''))
+    # audio.input(transcribe, inputs=audio, outputs=text)
     with gr.Row():
         with gr.Column():
             clear = gr.ClearButton()
         with gr.Column():
             submit = gr.Button("Submit", variant='primary')
-    input.change(onchange, inputs=input, outputs=text)
-
-# demo = gr.Interface(
-#     transcribe,
-#     gr.Audio(),
-#     "text",
-# )
+        submit.click(transcribe, inputs=audio, outputs=text)
+        clear.click(handle_clear, inputs=[audio, text])
 
 demo.launch(inbrowser=True)
