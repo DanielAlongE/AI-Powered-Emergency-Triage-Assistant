@@ -44,17 +44,21 @@ def markdown_wrapper(content):
             print(f"__{word}__")
             result.append(word)
 
-    return f'<div style="min-height: 300px; width:100%; border: 1 solid #ccc;">{''.join(result)}</div>'
+    return f'<div style="min-height: 300px; width:100%; border: 1px solid #ccc;">{''.join(result)}</div>'
 
 with gr.Blocks() as demo:
     with gr.Row():
-        text = gr.Markdown(markdown_wrapper(''))
-        input = gr.TextArea()
+        with gr.Column():
+            audio = gr.Audio(sources=["microphone", "upload"], type="numpy", streaming=True)
+        with gr.Column():
+            text = gr.Markdown(markdown_wrapper('# Smart 1'))
+            input = gr.TextArea()
+    audio.input(transcribe, inputs=audio, outputs=input)
     with gr.Row():
         with gr.Column():
             clear = gr.ClearButton()
         with gr.Column():
-            submit = gr.Button("Submit")
+            submit = gr.Button("Submit", variant='primary')
     input.change(onchange, inputs=input, outputs=text)
 
 # demo = gr.Interface(
