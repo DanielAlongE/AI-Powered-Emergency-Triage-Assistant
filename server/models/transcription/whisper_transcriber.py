@@ -8,7 +8,7 @@ class WhisperTranscriber(Transcriber):
         print(f"Initializing transcription pipeline with model: {model_name}...")
         
         try:        
-            self.transcriber = pipeline("automatic-speech-recognition", model=model_name, device = device, return_attention_mask=True)
+            self.transcriber = pipeline("automatic-speech-recognition", model=model_name, device = device)
         except Exception as e:
             print(f"Error initializing the pipeline: {e}")
             self.transcriber = None
