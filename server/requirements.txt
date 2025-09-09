@@ -3,5 +3,6 @@ numpy
 ollama
 python-dotenv
 torch
+torchaudio
 typing
 transformers
