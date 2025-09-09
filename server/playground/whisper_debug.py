@@ -49,7 +49,7 @@ def markdown_wrapper(content):
 with gr.Blocks() as demo:
     with gr.Row():
         with gr.Column():
-            audio = gr.Audio(sources=["microphone", "upload"], type="numpy")
+            audio = gr.Audio(sources=["microphone", "upload"])
         with gr.Column():
             text = gr.Markdown(markdown_wrapper(''))
     # audio.input(transcribe, inputs=audio, outputs=text)
