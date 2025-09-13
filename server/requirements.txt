@@ -6,3 +6,4 @@ torch
 torchaudio
 typing
 transformers
+vosk
