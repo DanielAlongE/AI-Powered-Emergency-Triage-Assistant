@@ -3,10 +3,11 @@ import gradio as gr
 from models.transcription.whisper_transcriber import WhisperTranscriber
 
 
-def transcribe(audio):
+def transcribe(audio, model):
     transcriber = WhisperTranscriber()
     text = transcriber.transcribe(audio)
-    return gr.Markdown(markdown_wrapper(text))
+    print(f"{model=}")
+    return gr.Markdown(markdown_wrapper(text)), model
 
 def highlighted(text):
     return f'<span style="background-color: yellow;">{text}</span>'
@@ -48,6 +49,10 @@ def markdown_wrapper(content):
 
 with gr.Blocks() as demo:
     with gr.Row():
+        select = gr.Dropdown(
+            ["ran", "swam", "ate", "slept"], value=["swam", "slept"], label="Activity"
+        )
+    with gr.Row():
         with gr.Column():
             audio = gr.Audio(sources=["microphone", "upload"])
         with gr.Column():
@@ -58,7 +63,7 @@ with gr.Blocks() as demo:
             clear = gr.ClearButton()
         with gr.Column():
             submit = gr.Button("Submit", variant='primary')
-        submit.click(transcribe, inputs=audio, outputs=text)
+        submit.click(transcribe, inputs=[audio, select], outputs=[text, select])
         clear.click(handle_clear, inputs=[audio, text])
 
 demo.launch(inbrowser=True)
