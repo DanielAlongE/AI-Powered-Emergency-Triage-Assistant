@@ -1,3 +1,4 @@
+from typing import Tuple
 import numpy as np
 import json
 
@@ -11,9 +12,8 @@ class VoskTranscriber(Transcriber):
         print(f"Initializing transcription pipeline with model: {model_name}...")
         self.model = Model(lang=model_name)
 
-        
 
-    def transcribe(self, data: np.ndarray, state) -> str:
+    def transcribe(self, data: np.ndarray, state) -> Tuple[str, any]:
         sample_rate, audio_data = data
         audio_data = audio_data.astype("int16").tobytes()
 
@@ -32,9 +32,7 @@ class VoskTranscriber(Transcriber):
         else:
             partial_result = json.loads(rec.PartialResult())["partial"] + " "
 
-        # , (rec, result)
-
-        return "\n".join(result) + "\n" + partial_result
+        return "\n".join(result) + "\n" + partial_result, (rec, result)
 
 
 
