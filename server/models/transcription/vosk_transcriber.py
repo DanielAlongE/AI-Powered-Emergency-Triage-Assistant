@@ -13,7 +13,23 @@ class VoskTranscriber(Transcriber):
         self.model = Model(lang=model_name)
 
 
-    def transcribe(self, data: np.ndarray, state) -> Tuple[str, any]:
+    def transcribe(self, data: np.ndarray) -> str:
+        sample_rate, audio_data = data
+        audio_data = audio_data.astype("int16").tobytes()
+
+        rec = KaldiRecognizer(self.model, sample_rate)
+        result = []
+
+        if rec.AcceptWaveform(audio_data):
+            text_result = json.loads(rec.Result())["text"]
+            if text_result != "":
+                result.append(text_result)
+
+        return "\n".join(result) + "\n"
+
+
+
+    def transcribe_stream(self, data: np.ndarray, state) -> Tuple[str, any]:
         sample_rate, audio_data = data
         audio_data = audio_data.astype("int16").tobytes()
 
