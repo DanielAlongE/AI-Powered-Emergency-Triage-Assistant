@@ -10,8 +10,8 @@ import ollama
 
 RESPONSE_FORMAT = {
     'conversation': [
-        {'role': 'nurse', 'content': 'I am the nurse!'},
-        {'role': 'patient', 'content': 'I am the patient.'},
+        {'role': 'assistant', 'content': 'I am the nurse!'},
+        {'role': 'user', 'content': 'I am the patient.'},
         ]
     }
 
