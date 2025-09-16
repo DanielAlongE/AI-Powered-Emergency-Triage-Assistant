@@ -19,28 +19,42 @@ class WhisperTranscriber(Transcriber):
         except Exception as e:
             print(f"Error initializing the pipeline: {e}")
             self.transcriber = None
+    def normalizate_audio(self, audio_data: np.ndarray):
+        sr, y = audio_data
+        
+        # Convert to mono if stereo
+        if y.ndim > 1:
+            y = y.mean(axis=1)
+            
+        y = y.astype(np.float32)
+        y /= np.max(np.abs(y))
+
+        return sr, y
 
 
-    def transcribe(self, audio_data: np.ndarray, _) -> Tuple[str, any]:
+
+    def transcribe(self, audio_data: np.ndarray) -> str:
 
         if self.transcriber is None:
-            return ("Transcription failed due to model initialization error.", None)
+            return "Transcription failed due to model initialization error."
         
         try:
-            sr, y = audio_data
-            
-            # Convert to mono if stereo
-            if y.ndim > 1:
-                y = y.mean(axis=1)
-                
-            y = y.astype(np.float32)
-            y /= np.max(np.abs(y))
+            sr, y = self.normalizate_audio(audio_data)
 
             result = self.transcriber({"sampling_rate":sr, "raw":y})
-            return (result.get("text", "No text found in transcription."), None)
+            return result.get("text", "No text found in transcription.")
         except Exception as e:
             print(f"Error during transcription: {e}")
-            return ("Transcription failed.", None)
+            return "Transcription failed."
+        
+    def transcribe_stream(self, new_chunk: np.ndarray, stream):
+        sr, y = self.normalizate_audio(new_chunk)
+
+        if stream is not None:
+            stream = np.concatenate([stream, y])
+        else:
+            stream = y
+        return self.transcriber({"sampling_rate": sr, "raw": stream})["text"], stream
 
 
 
