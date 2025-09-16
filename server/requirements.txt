@@ -1,4 +1,5 @@
 gradio
+json
 numpy
 ollama
 python-dotenv
