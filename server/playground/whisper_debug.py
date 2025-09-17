@@ -98,7 +98,7 @@ with gr.Blocks() as demo:
         with gr.Column():
             markdown_text = gr.Markdown(markdown_wrapper(''))
             chatbot = gr.Chatbot(type="messages")
-            real_text = gr.Textbox(visible=False)
+            real_text = gr.Textbox()
             real_text.change(handle_conversation, inputs=real_text, outputs=chatbot)
             # text.change(handle_conversation, inputs=text, outputs=chatbot)
         audio.stream(transcribe_stream, inputs=[audio, state, select], outputs=[real_text, state, markdown_text])
