@@ -11,7 +11,7 @@ Download: Go to the official Ollama website at https://ollama.com/ and download 
 Run the Installer: Follow the on-screen instructions to complete the installation.
 
 
-#### Pull the Llama 3.2 Model
+#### Run the Llama 3.2 Model
 ```
 ollama serve
 
