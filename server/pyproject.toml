@@ -11,21 +11,24 @@ dependencies = [
     "fastapi (>=0.116.2,<0.117.0)",
     "uvicorn[standard]",
     "gradio (>=5.46.1,<6.0.0)",
-    "numpy (>=2.3.3,<3.0.0)",
+    "numpy (>=1.21.0,<2.0.0)",
     "ollama (>=0.5.4,<0.6.0)",
     "python-dotenv (>=1.1.1,<2.0.0)",
     "torch (>=2.8.0,<3.0.0)",
     "torchaudio (>=2.8.0,<3.0.0)",
     "transformers (>=4.56.2,<5.0.0)",
-    "vosk"
+    "vosk (==0.3.44)"
 ]
+
+[tool.poetry.scripts]
+hello-world = "main:main"
 
 [tool.poetry]
 packages = [
-    {include = "app"}, 
-    {include = "models"},
-    {include = "playground"},
-    {include = "services"}
+    {include = "app", from = "src"}, 
+    {include = "models", from = "src"},
+    {include = "playground", from = "src"},
+    {include = "services", from = "src"}
     ]
 
 
