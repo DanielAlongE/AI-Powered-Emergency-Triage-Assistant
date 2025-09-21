@@ -1,0 +1,34 @@
+[project]
+name = "server"
+version = "0.1.0"
+description = "AI-Powered Emergency Triage Assistant"
+authors = [
+    {name = "Daniel Alonge"}
+]
+readme = "README.md"
+requires-python = "=3.13.5"
+dependencies = [
+    "fastapi (>=0.116.2,<0.117.0)",
+    "uvicorn[standard]",
+    "gradio (>=5.46.1,<6.0.0)",
+    "numpy (>=2.3.3,<3.0.0)",
+    "ollama (>=0.5.4,<0.6.0)",
+    "python-dotenv (>=1.1.1,<2.0.0)",
+    "torch (>=2.8.0,<3.0.0)",
+    "torchaudio (>=2.8.0,<3.0.0)",
+    "transformers (>=4.56.2,<5.0.0)",
+    "vosk"
+]
+
+[tool.poetry]
+packages = [
+    {include = "app"}, 
+    {include = "models"},
+    {include = "playground"},
+    {include = "services"}
+    ]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
