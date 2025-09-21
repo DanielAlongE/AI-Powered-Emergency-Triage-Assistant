@@ -1,7 +1,7 @@
 import re
 import gradio as gr
-from models.transcription.whisper_transcriber import WhisperTranscriber
-from models.transcription import VoskTranscriber
+from models import WhisperTranscriber
+from models import VoskTranscriber
 from models.llama.conversation_analizer import ConversationAnalizer
 
 conversation = ConversationAnalizer()

@@ -4,7 +4,7 @@ import json
 
 from vosk import KaldiRecognizer, Model
 
-from server.models.transcription.transcriber import Transcriber
+from models.transcription.transcriber import Transcriber
 
 
 class VoskTranscriber(Transcriber):

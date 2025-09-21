@@ -2,7 +2,7 @@ from typing import Tuple
 import numpy as np
 from transformers import pipeline
 
-from server.models.transcription.transcriber import Transcriber
+from models.transcription.transcriber import Transcriber
 
 class WhisperTranscriber(Transcriber):
     def __init__(self, model_name: str = "openai/whisper-tiny.en", device: str = "mps"):
