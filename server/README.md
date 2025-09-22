@@ -9,6 +9,12 @@ curl -sSL https://install.python-poetry.org | python3 -
 (Invoke-WebRequest -Uri https://install.python-poetry.org -UseBasicParsing).Content | python -
 ```
 
+## Install Project
+```
+cd  server
+poetry install
+```
+
 
 ## Run Server Project
 
