@@ -23,6 +23,7 @@ dependencies = [
 
 [tool.poetry.scripts]
 main = "main:main"
+demo = "playground.whisper_debug:launch"
 
 [tool.poetry]
 packages = [
