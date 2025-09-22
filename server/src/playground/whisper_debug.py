@@ -111,4 +111,9 @@ with gr.Blocks() as demo:
         submit.click(transcribe, inputs=[audio2, select], outputs=[markdown_text])
         clear.click(handle_clear, inputs=[audio, markdown_text])
 
-demo.launch(inbrowser=True)
+def launch():
+    demo.launch(inbrowser=True)
+
+
+if __name__ == "__main__":
+    launch()
