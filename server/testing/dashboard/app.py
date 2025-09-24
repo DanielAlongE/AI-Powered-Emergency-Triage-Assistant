@@ -92,10 +92,14 @@ st.markdown("""
 
 
 @st.cache_data(ttl=300)  # Cache for 5 minutes
-def load_test_data():
-    """Load test data with caching."""
+def load_test_data(max_workers: int = 1):
+    """Load test data with caching.
+
+    Args:
+        max_workers: Number of parallel workers for the test runner.
+    """
     try:
-        runner = TriageTestRunner(max_workers=1)  # Single worker for UI responsiveness
+        runner = TriageTestRunner(max_workers=max_workers)
         stats = runner.load_test_data()
         return runner, stats
     except Exception as e:
@@ -104,9 +108,15 @@ def load_test_data():
 
 
 @st.cache_data(ttl=60)  # Cache for 1 minute
-def run_agent_test(agent_config: Dict[str, Any], limit: int = 50):
-    """Run agent test with caching."""
-    runner, _ = load_test_data()
+def run_agent_test(agent_config: Dict[str, Any], limit: int = 50, max_workers: int = 1):
+    """Run agent test with caching.
+
+    Args:
+        agent_config: Agent configuration dict.
+        limit: Max number of test cases to run.
+        max_workers: Number of parallel workers to use during testing.
+    """
+    runner, _ = load_test_data(max_workers)
     if runner is None:
         return None
 
@@ -373,7 +383,15 @@ def main():
         # Test parameters
         st.divider()
         st.subheader("🧪 Test Parameters")
-        test_limit = st.slider("# of Test Cases to Run", 10, 150, 150, 10)
+        parallel_workers = st.number_input(
+            "Parallel Workers",
+            min_value=1,
+            max_value=32,
+            value=1,
+            step=1,
+            help="Number of threads to use when running test cases in parallel. Set to 1 to run sequentially."
+        )
+        test_limit = st.slider("Test Cases to Run", 10, 150, 150, 10)
 
         # Run test button
         run_test = st.button("Run Test", type="primary", use_container_width=True)
@@ -391,7 +409,7 @@ def main():
 
             with st.spinner(f"Running test for {agent_name}..."):
                 # Run test
-                test_result = run_agent_test(agent_config, test_limit)
+                test_result = run_agent_test(agent_config, test_limit, max_workers=parallel_workers)
 
                 if test_result:
                     st.session_state['last_test_result'] = test_result
