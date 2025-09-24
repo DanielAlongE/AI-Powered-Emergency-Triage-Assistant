@@ -1,4 +1,6 @@
 from fastapi import APIRouter, File, Form, UploadFile
+from app.schemas import ConversationResponse, ConversationRequest
+from models.llama import ConversationAnalizer
 
 router = APIRouter(prefix="/api", tags=["triage"])
 
@@ -25,5 +27,10 @@ router = APIRouter(prefix="/api", tags=["triage"])
 
 # given a transcription text, return an array of chat like conversation between the nurse and patient
 # we have the option of either using the converstation_analizer based on llama3.2
-# @router.post("/conversation", response_model=ChatResponse)
-# async def ConversationAnalizer().analyze(transcript: str) -> ChatResponse:
+@router.post("/conversation", response_model=ConversationResponse)
+async def converstaion(request: ConversationRequest) -> ConversationResponse:
+    try:
+        return ConversationAnalizer().analyze(request.transcript)
+    except Exception as e:
+        print(e)
+        return {'converstaion': []}
