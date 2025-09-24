@@ -64,10 +64,10 @@ def create_document_chunks(text: str, source_path: Path) -> List[Document]:
     """
     Split text into chunks and create Document objects.
     """
-    # Use settings similar to the original implementation
+    # Improved chunk configuration for better RAG performance
     splitter = RecursiveCharacterTextSplitter(
-        chunk_size=600,
-        chunk_overlap=100,
+        chunk_size=1000,
+        chunk_overlap=200,
         separators=["\n## ", "\n### ", "\n\n", "\n", " ", ""]
     )
 
@@ -78,8 +78,8 @@ def create_document_chunks(text: str, source_path: Path) -> List[Document]:
 
     logger.info("text_split",
                 total_chunks=len(documents),
-                chunk_size=600,
-                chunk_overlap=100)
+                chunk_size=1000,
+                chunk_overlap=200)
 
     # Log first few chunks for debugging
     for i, doc in enumerate(documents[:3]):

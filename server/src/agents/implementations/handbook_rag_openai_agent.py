@@ -71,9 +71,11 @@ class HandbookRagOpenAiAgent(BaseTriageAgent):
         self._red_flag_detector = RedFlagDetector(settings.red_flag_lexicon_path)
         self._max_questions = settings.max_follow_up_questions
 
-        # Agent-specific configuration
-        self.temperature = config.get('temperature', 0.1)
+        # Agent-specific configuration (improved temperature for less deterministic responses)
+        self.temperature = config.get('temperature', 0.3)
         self.max_questions = config.get('max_questions', 3)
+        # Option to override model for better accuracy (e.g., 'gpt-4o' instead of 'gpt-4o-mini')
+        self.model_override = config.get('model_override', None)
 
         logger.info("handbook_rag_openai_agent_initialized",
                    name=name,
@@ -116,7 +118,7 @@ class HandbookRagOpenAiAgent(BaseTriageAgent):
 
         # RAG retrieval
         rag_docs = self._rag.query(combined_text or "triage assessment guidance")
-        rag_context = "\\n\\n".join(f"- {doc.page_content}" for doc in rag_docs)
+        rag_context = "\n\n".join(f"- {doc.page_content}" for doc in rag_docs)
 
         # Build prompt (same structure as reasoner.py)
         prompt = self._build_prompt(combined_text, red_flag_terms, rag_context)
@@ -133,7 +135,8 @@ class HandbookRagOpenAiAgent(BaseTriageAgent):
         response = await self._gateway.stream_completion(
             prompt=prompt,
             json_schema=JSON_SCHEMA,
-            temperature=self.temperature
+            temperature=self.temperature,
+            model_override=self.model_override
         )
 
         logger.info("handbook_agent_response_received", agent=self.name)
@@ -143,22 +146,37 @@ class HandbookRagOpenAiAgent(BaseTriageAgent):
 
     def _build_prompt(self, transcript: str, red_flag_terms: List[str], rag_context: str) -> str:
         """
-        Build prompt - exact same structure as reasoner.py
+        Build prompt - enhanced with structured ESI reasoning
         """
         instructions = [
             "You are an emergency department triage copilot assisting a nurse.",
             "Summarize the key symptoms, identify missing critical questions, and estimate an ESI level when possible.",
             "Use the provided protocol context and red-flag list to inform your judgment.",
+            "",
+            "ESI Level Guidelines:",
+            "• Level 1 (Life-threatening): Requires immediate intervention (cardiac arrest, severe trauma, airway obstruction)",
+            "• Level 2 (High risk): Urgent care within 10 minutes (chest pain, difficulty breathing, altered mental status)",
+            "• Level 3 (Moderate): Stable patients needing resources, 30-minute target (fever with concerning symptoms, moderate pain)",
+            "• Level 4 (Lower urgency): Simple problems, 1-2 hour wait acceptable (minor cuts, sprains, simple infections)",
+            "• Level 5 (Non-urgent): Can wait several hours (medication refills, chronic issues, minor complaints)",
+            "",
+            "Key Decision Factors:",
+            "• Vital sign stability and concerning trends",
+            "• Age-specific considerations (elderly, pediatric, pregnant patients need lower thresholds)",
+            "• Pain level and quality (severe, progressive, or concerning character)",
+            "• Patient appearance and demeanor (distressed, anxious, pale, diaphoretic)",
+            "• Potential for clinical deterioration",
+            "",
             "Respond with raw JSON only, matching the schema keys: follow_up_questions (list of objects), esi_level, confidence, rationale, escalation_required.",
             f"The follow_up_questions array should contain at most {self.max_questions} items, each with question, priority, rationale, escalation.",
         ]
         prompt_sections = [
-            "\\n".join(f"- {item}" for item in instructions),
-            f"Transcript:\\n{transcript if transcript else 'No transcript yet.'}",
+            "\n".join(f"- {item}" for item in instructions),
+            f"Transcript:\n{transcript if transcript else 'No transcript yet.'}",
             f"Red-flag terms detected: {', '.join(red_flag_terms) if red_flag_terms else 'none'}",
-            f"Protocol context:\\n{rag_context if rag_context else 'No relevant passages.'}",
+            f"Protocol context:\n{rag_context if rag_context else 'No relevant passages.'}",
         ]
-        return "\\n\\n".join(prompt_sections)
+        return "\n\n".join(prompt_sections)
 
     def _to_esi_assessment(self, llm_response: dict, matches: List[RedFlag]) -> ESIAssessment:
         """
@@ -185,6 +203,27 @@ class HandbookRagOpenAiAgent(BaseTriageAgent):
             rationale = llm_response.get("rationale")
             escalation_required = bool(llm_response.get("escalation_required", False))
 
+        # Extract follow-up questions from LLM response
+        follow_up_questions = []
+        if isinstance(llm_response, dict):
+            questions_payload = llm_response.get("follow_up_questions", [])
+            for idx, item in enumerate(questions_payload):
+                if idx >= self.max_questions:
+                    break
+                if isinstance(item, dict) and "question" in item:
+                    follow_up_questions.append(item["question"])
+                elif isinstance(item, str):
+                    follow_up_questions.append(item)
+
+        # Add red flag questions if no questions from LLM and we have red flag matches
+        if not follow_up_questions and matches:
+            # Use red flag detector's suggested questions if available
+            if hasattr(self._red_flag_detector, 'suggested_questions'):
+                for follow_up in self._red_flag_detector.suggested_questions(matches):
+                    if len(follow_up_questions) >= self.max_questions:
+                        break
+                    follow_up_questions.append(follow_up)
+
         # Handle red flag escalation
         if matches and any(flag.escalation for flag in matches):
             escalation_required = True
@@ -197,5 +236,6 @@ class HandbookRagOpenAiAgent(BaseTriageAgent):
             esi_level=esi_level,
             confidence=confidence,
             rationale=rationale,
+            follow_up_questions=follow_up_questions,
             agent_name=self.name
         )

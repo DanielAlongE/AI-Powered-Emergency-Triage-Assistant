@@ -16,7 +16,7 @@ class ProtocolRAG:
         self._persist_dir = str(settings.chroma_db_path)
         self._embedding_model = settings.embedding_model
         self._client = self._create_vector_store()
-        self._retriever = self._client.as_retriever(search_kwargs={"k": 4})
+        self._retriever = self._client.as_retriever(search_kwargs={"k": 8})
         logger.info(
             "rag_initialized", directory=self._persist_dir, embedding_model=self._embedding_model
         )
@@ -32,7 +32,7 @@ class ProtocolRAG:
     def retriever(self) -> VectorStoreRetriever:
         return self._retriever
 
-    def query(self, query: str, *, k: int = 4) -> List[Document]:
+    def query(self, query: str, *, k: int = 8) -> List[Document]:
         docs = self._retriever.get_relevant_documents(query)
         if docs:
             logger.info("rag_hits", query=query, results=len(docs))

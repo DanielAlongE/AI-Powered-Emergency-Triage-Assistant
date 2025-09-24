@@ -80,12 +80,16 @@ class HostedModelGateway:
         prompt: str,
         json_schema: Optional[Dict[str, Any]] = None,
         temperature: float = 0.1,
+        model_override: Optional[str] = None,
     ) -> Dict[str, Any]:
         if not self._openai_client:
             raise RuntimeError("OpenAI client not configured")
 
+        # Use model override if provided, otherwise use default setting
+        model = model_override or self._settings.openai_completion_model
+
         kwargs: Dict[str, Any] = {
-            "model": self._settings.openai_completion_model,
+            "model": model,
             "messages": [{"role": "user", "content": prompt}],
             "temperature": temperature,
         }
