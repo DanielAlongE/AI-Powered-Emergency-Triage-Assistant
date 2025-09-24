@@ -5,6 +5,7 @@ import ChatBubble from '@/components/ChatBubble.vue'
 const transcript = ref('')
 const isListening = ref(false)
 const recognition = ref(null)
+const messages = ref([])
 
 onMounted(() => {
   if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
@@ -54,6 +55,25 @@ const stopListening = () => {
     recognition.value.stop()
   }
 }
+
+const sendTranscript = async () => {
+  if (!transcript.value.trim()) return
+
+  try {
+    const response = await fetch('http://localhost:8000/api/conversation', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ transcript: transcript.value })
+    })
+    const { conversation } = await response.json()
+
+    messages.value = conversation
+
+
+  } catch (error) {
+    console.error('Error sending transcript:', error)
+  }
+}
 </script>
 
 <template>
@@ -70,14 +90,14 @@ const stopListening = () => {
             >
               {{ isListening ? 'Stop Listening' : 'Start Listening' }}
             </v-btn>
-            <v-textarea v-model="transcript" label="Transcript" readonly rows="4"></v-textarea>
+            <v-textarea v-model="transcript" label="Transcript" rows="4"></v-textarea>
+            <v-btn @click="sendTranscript" color="success" class="mt-2">Send Transcript</v-btn>
           </v-card-text>
         </v-card>
       </v-col>
       <v-col cols="4">
         <v-card class="elevation-4">
-          <ChatBubble content="One" />
-          <ChatBubble content="Two" primary />
+          <ChatBubble v-for="(msg, index) in messages" :key="index" :content="msg.content" :primary="msg.role == 'NURSE'" />
         </v-card>
       </v-col>
     </v-row>
