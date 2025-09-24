@@ -8,3 +8,6 @@ class ChatResponse(BaseModel):
 
 class ConversationResponse(BaseModel):
     conversation: List[ChatResponse]
+
+class ConversationRequest(BaseModel):
+    transcript: str
