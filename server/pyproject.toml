@@ -6,7 +6,7 @@ authors = [
     {name = "Daniel Alonge"}
 ]
 readme = "README.md"
-requires-python = "=3.13.5"
+requires-python = "<3.14,>3.10"
 dependencies = [
     "fastapi (>=0.116.2,<0.117.0)",
     "uvicorn (>=0.36.0,<0.37.0)",
@@ -18,19 +18,29 @@ dependencies = [
     "torchaudio (>=2.8.0,<3.0.0)",
     "transformers (>=4.56.2,<5.0.0)",
     "vosk (==0.3.44)",
-    "pydantic (>=2.11.9,<3.0.0)"
+    "pydantic (>=2.11.9,<3.0.0)",
+    "pytest (>=8.0.0,<9.0.0)",
+    "pytest-asyncio (>=0.24.0,<1.0.0)",
+    "scikit-learn (>=1.3.0,<2.0.0)",
+    "matplotlib (>=3.7.0,<4.0.0)",
+    "seaborn (>=0.12.0,<1.0.0)",
+    "pandas (>=2.0.0,<3.0.0)",
+    "plotly (>=5.15.0,<6.0.0)",
+    "streamlit (>=1.28.0,<2.0.0)"
 ]
 
 [tool.poetry.scripts]
 main = "main:main"
 demo = "playground.whisper_debug:launch"
+dashboard = "testing.dashboard.launch:main"
 
 [tool.poetry]
 packages = [
-    {include = "app", from = "src"}, 
+    {include = "app", from = "src"},
     {include = "models", from = "src"},
     {include = "playground", from = "src"},
-    {include = "services", from = "src"}
+    {include = "services", from = "src"},
+    {include = "agents", from = "src"}
     ]
 
 

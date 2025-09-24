@@ -7979,7 +7979,7 @@
     "type": "Competency A",
     "number": 7,
     "expected": {
-      "esi_level": null,
+      "esi_level": 4,
       "esi_rationale": "ESI level 4 or 5: This case is an example of variations in practice around the country. Many emergency departments would examine the child and then attempt to reduce the dislocation of the radial head without an x ray. Others may x ray the child's arm, which is considered one ESI resource. Relocation is not considered a resource."
     },
     "meta": {
