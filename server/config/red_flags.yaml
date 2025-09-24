@@ -1,0 +1,124 @@
+- term: "chest pain"
+  severity: "high"
+  follow_up: "Can you describe the chest pain? Is it sharp, crushing, or burning?"
+  escalation: true
+
+- term: "difficulty breathing"
+  severity: "critical"
+  follow_up: "Are you having trouble breathing right now? When did this start?"
+  escalation: true
+
+- term: "shortness of breath"
+  severity: "critical"
+  follow_up: "Are you having trouble breathing right now? When did this start?"
+  escalation: true
+
+- term: "unconscious"
+  severity: "critical"
+  follow_up: "Is the patient responsive now? How long were they unconscious?"
+  escalation: true
+
+- term: "unresponsive"
+  severity: "critical"
+  follow_up: "Is the patient responsive now? How long were they unresponsive?"
+  escalation: true
+
+- term: "cardiac arrest"
+  severity: "critical"
+  follow_up: "Was CPR performed? Are they stable now?"
+  escalation: true
+
+- term: "stroke"
+  severity: "critical"
+  follow_up: "When did symptoms start? Any facial drooping or arm weakness?"
+  escalation: true
+
+- term: "severe bleeding"
+  severity: "critical"
+  follow_up: "Where is the bleeding? Have you been able to control it?"
+  escalation: true
+
+- term: "heavy bleeding"
+  severity: "critical"
+  follow_up: "Where is the bleeding? Have you been able to control it?"
+  escalation: true
+
+- term: "suicide"
+  severity: "critical"
+  follow_up: "Are you having thoughts of hurting yourself right now?"
+  escalation: true
+
+- term: "suicidal"
+  severity: "critical"
+  follow_up: "Are you having thoughts of hurting yourself right now?"
+  escalation: true
+
+- term: "overdose"
+  severity: "critical"
+  follow_up: "What substance was taken and how much? When did this occur?"
+  escalation: true
+
+- term: "severe pain"
+  severity: "high"
+  follow_up: "On a scale of 1-10, how would you rate your pain? Where is it located?"
+  escalation: false
+
+- term: "10/10 pain"
+  severity: "critical"
+  follow_up: "Where is this severe pain located? How long has it been this intense?"
+  escalation: true
+
+- term: "can't breathe"
+  severity: "critical"
+  follow_up: "Are you having trouble breathing right now? When did this start?"
+  escalation: true
+
+- term: "allergic reaction"
+  severity: "high"
+  follow_up: "What did you come in contact with? Any swelling or difficulty breathing?"
+  escalation: true
+
+- term: "anaphylaxis"
+  severity: "critical"
+  follow_up: "Do you have an EpiPen? Any difficulty breathing or swallowing?"
+  escalation: true
+
+- term: "head injury"
+  severity: "high"
+  follow_up: "Did you lose consciousness? Any nausea, vomiting, or confusion?"
+  escalation: true
+
+- term: "vomiting blood"
+  severity: "critical"
+  follow_up: "How much blood? Any abdominal pain or black stools?"
+  escalation: true
+
+- term: "blood in vomit"
+  severity: "critical"
+  follow_up: "How much blood? Any abdominal pain or black stools?"
+  escalation: true
+
+- term: "high fever"
+  severity: "medium"
+  follow_up: "What's your temperature? Any other symptoms like chills or headache?"
+  escalation: false
+
+- term: "seizure"
+  severity: "high"
+  follow_up: "How long did the seizure last? Are they alert now?"
+  escalation: true
+
+- term: "pregnant"
+  severity: "medium"
+  follow_up: "How many weeks pregnant are you? Any cramping or bleeding?"
+  escalation: false
+
+- term: "pregnancy"
+  severity: "medium"
+  follow_up: "How many weeks pregnant are you? Any cramping or bleeding?"
+  escalation: false
+
+- term: "miscarriage"
+  severity: "high"
+  follow_up: "Any heavy bleeding or severe cramping? How many weeks pregnant?"
+  escalation: true

@@ -35,6 +35,13 @@ from agents.implementations.rule_based_agent import RuleBasedTriageAgent
 # except ImportError:
 LLM_AVAILABLE = False
 
+# Import new HandbookRagOpenAiAgent
+try:
+    from agents.implementations.handbook_rag_openai_agent import HandbookRagOpenAiAgent
+    HANDBOOK_RAG_AVAILABLE = True
+except ImportError:
+    HANDBOOK_RAG_AVAILABLE = False
+
 
 # Configure Streamlit page
 st.set_page_config(
@@ -116,6 +123,13 @@ def run_agent_test(agent_config: Dict[str, Any], limit: int = 50):
             agent = LLMTriageAgent(agent_name, agent_config.get('params', {}))
         elif agent_type == 'hybrid' and LLM_AVAILABLE:
             agent = HybridTriageAgent(agent_name, agent_config.get('params', {}))
+        elif agent_type == 'handbook_rag_openai' and HANDBOOK_RAG_AVAILABLE:
+            # Set up environment for HandbookRagOpenAiAgent
+            params = agent_config.get('params', {})
+            if 'openai_api_key' in params:
+                import os
+                os.environ['OPENAI_API_KEY'] = params['openai_api_key']
+            agent = HandbookRagOpenAiAgent(agent_name, params)
         else:
             return None
 
@@ -124,7 +138,8 @@ def run_agent_test(agent_config: Dict[str, Any], limit: int = 50):
         summary = runner.generate_summary(results)
 
         return {
-            'agent': agent,
+            'agent_name': agent.name,
+            'agent_type': agent_type,
             'results': results,
             'summary': summary,
             'timestamp': datetime.now()
@@ -277,14 +292,21 @@ def main():
 
         # Agent selection
         st.subheader("🤖 Select Agent")
+        agent_options = ['random', 'rule_based']
+        if LLM_AVAILABLE:
+            agent_options.extend(['llm', 'hybrid'])
+        if HANDBOOK_RAG_AVAILABLE:
+            agent_options.append('handbook_rag_openai')
+
         agent_type = st.selectbox(
             "Agent Type",
-            options=['random', 'rule_based'] + (['llm', 'hybrid'] if LLM_AVAILABLE else []),
+            options=agent_options,
             format_func=lambda x: {
                 'random': 'Random Agent',
                 'rule_based': 'Rule-Based Agent',
                 'llm': 'LLM Agent',
-                'hybrid': 'Hybrid Agent'
+                'hybrid': 'Hybrid Agent',
+                'handbook_rag_openai': 'Handbook RAG + OpenAI Agent'
             }.get(x, x)
         )
 
@@ -317,6 +339,36 @@ def main():
             st.subheader("Hybrid Agent Parameters")
             params['rule_weight'] = st.slider("Rule Weight", 0.0, 1.0, 0.3, 0.01)
             params['llm_weight'] = st.slider("LLM Weight", 0.0, 1.0, 0.7, 0.01)
+
+        elif agent_type == 'handbook_rag_openai' and HANDBOOK_RAG_AVAILABLE:
+            st.subheader("Handbook RAG + OpenAI Parameters")
+
+            # OpenAI Configuration
+            st.write("**OpenAI Configuration:**")
+            openai_key = st.text_input(
+                "OpenAI API Key",
+                type="password",
+                placeholder="sk-...",
+                help="Enter your OpenAI API key for this session"
+            )
+            if openai_key:
+                params['openai_api_key'] = openai_key
+
+            params['model'] = st.selectbox(
+                "OpenAI Model",
+                ['gpt-4o-mini', 'gpt-3.5-turbo', 'gpt-4o'],
+                index=0
+            )
+            params['temperature'] = st.slider("Temperature", 0.0, 1.0, 0.1, 0.01)
+            params['max_questions'] = st.slider("Max Follow-up Questions", 1, 5, 3, 1)
+
+            # Status indicators
+            if openai_key:
+                st.success("✅ OpenAI API Key provided")
+            else:
+                st.warning("⚠️ OpenAI API Key required for this agent")
+
+            st.info("💡 This agent uses RAG (retrieval-augmented generation) with ESI protocol documents and red-flag detection for enhanced triage assessment.")
 
         # Test parameters
         st.divider()
@@ -444,6 +496,11 @@ def main():
         - **Random Agent**: Baseline for comparison
         - **Rule-Based Agent**: Basic keyword and pattern matching
         """)
+
+        if HANDBOOK_RAG_AVAILABLE:
+            st.markdown("""
+        - **Handbook RAG + OpenAI Agent**: Advanced AI-powered assessment using OpenAI with RAG and red-flag detection
+            """)
 
         if LLM_AVAILABLE:
             st.markdown("""

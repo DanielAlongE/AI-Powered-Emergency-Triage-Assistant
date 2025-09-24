@@ -26,13 +26,23 @@ dependencies = [
     "seaborn (>=0.12.0,<1.0.0)",
     "pandas (>=2.0.0,<3.0.0)",
     "plotly (>=5.15.0,<6.0.0)",
-    "streamlit (>=1.28.0,<2.0.0)"
+    "streamlit (>=1.28.0,<2.0.0)",
+    "langchain (>=0.2.0,<1.0.0)",
+    "langchain-community (>=0.2.0,<1.0.0)",
+    "chromadb (>=0.5.0,<1.0.0)",
+    "openai (>=1.35.0,<2.0.0)",
+    "langchain-openai (>=0.1.0,<1.0.0)",
+    "pyyaml (>=6.0.0,<7.0.0)",
+    "structlog (>=23.0.0,<25.0.0)",
+    "pydantic-settings (>=2.0.0,<3.0.0)",
+    "pypdf (>=3.0.0,<5.0.0)"
 ]
 
 [tool.poetry.scripts]
 main = "main:main"
 demo = "playground.whisper_debug:launch"
 dashboard = "testing.dashboard.launch:main"
+ingest = "utilities.ingest_protocols:main"
 
 [tool.poetry]
 packages = [
@@ -40,7 +50,8 @@ packages = [
     {include = "models", from = "src"},
     {include = "playground", from = "src"},
     {include = "services", from = "src"},
-    {include = "agents", from = "src"}
+    {include = "agents", from = "src"},
+    {include = "utilities", from = "src"}
     ]
 
 
