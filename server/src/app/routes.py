@@ -1,6 +1,6 @@
 from fastapi import APIRouter, File, Form, UploadFile
 from app.schemas import ConversationResponse, ConversationRequest
-from models.llama import ConversationAnalizer
+from models.llama import ConversationAnalizer, MODEL_GEMMA_3
 
 router = APIRouter(prefix="/api", tags=["triage"])
 
@@ -30,7 +30,7 @@ router = APIRouter(prefix="/api", tags=["triage"])
 @router.post("/conversation", response_model=ConversationResponse)
 async def converstaion(request: ConversationRequest) -> ConversationResponse:
     try:
-        return ConversationAnalizer().analyze(request.transcript)
+        return ConversationAnalizer(MODEL_GEMMA_3).analyze(request.transcript)
     except Exception as e:
         print(e)
         return {'converstaion': []}
