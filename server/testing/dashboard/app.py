@@ -367,8 +367,8 @@ def main():
 
             params['model'] = st.selectbox(
                 "OpenAI Model",
-                ['gpt-4o-mini', 'gpt-3.5-turbo', 'gpt-4o', 'gpt-4.1-mini', 'gpt-5-mini'],
-                index=4
+                ['gpt-4o-mini', 'gpt-3.5-turbo', 'gpt-4o', 'gpt-4.1-mini', 'gpt-5-mini', 'gpt-5'],
+                index=0
             )
             params['temperature'] = st.slider("Temperature", 0.0, 1.0, 0.1, 0.01)
             params['max_questions'] = st.slider("Max Follow-up Questions", 1, 5, 3, 1)
@@ -466,7 +466,8 @@ def main():
                     'Predicted ESI': r.predicted_esi,
                     'Correct': '✅' if r.correct else '❌',
                     'Confidence': f"{r.confidence:.2%}" if r.confidence else "N/A",
-                    'Time (ms)': f"{r.processing_time * 1000:.1f}"
+                    'Time (ms)': f"{r.processing_time * 1000:.1f}",
+                    'Rationale': r.rationale[:100] + "..." if r.rationale and len(r.rationale) > 100 else (r.rationale or "N/A")
                 })
 
             df = pd.DataFrame(results_data)
@@ -488,7 +489,8 @@ def main():
                         'correct': r.correct,
                         'confidence': r.confidence,
                         'processing_time': r.processing_time,
-                        'agent_name': r.agent_name
+                        'agent_name': r.agent_name,
+                        'rationale': r.rationale
                     } for r in result['results']])
 
                     csv = full_df.to_csv(index=False)
