@@ -367,7 +367,7 @@ def main():
             params['model'] = st.selectbox(
                 "OpenAI Model",
                 ['gpt-4o-mini', 'gpt-3.5-turbo', 'gpt-4o', 'gpt-4.1-mini', 'gpt-5-mini'],
-                index=0
+                index=4
             )
             params['temperature'] = st.slider("Temperature", 0.0, 1.0, 0.1, 0.01)
             params['max_questions'] = st.slider("Max Follow-up Questions", 1, 5, 3, 1)
