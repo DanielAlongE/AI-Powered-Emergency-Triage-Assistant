@@ -108,13 +108,14 @@ def load_test_data(max_workers: int = 1):
 
 
 @st.cache_data(ttl=60)  # Cache for 1 minute
-def run_agent_test(agent_config: Dict[str, Any], limit: int = 50, max_workers: int = 1):
+def run_agent_test(agent_config: Dict[str, Any], limit: int = 50, max_workers: int = 1, use_source_case_text: bool = False):
     """Run agent test with caching.
 
     Args:
         agent_config: Agent configuration dict.
         limit: Max number of test cases to run.
         max_workers: Number of parallel workers to use during testing.
+        use_source_case_text: If True, use source case text instead of conversation.
     """
     runner, _ = load_test_data(max_workers)
     if runner is None:
@@ -144,7 +145,7 @@ def run_agent_test(agent_config: Dict[str, Any], limit: int = 50, max_workers: i
             return None
 
         # Run test
-        results = runner.test_agent(agent, limit=limit)
+        results = runner.test_agent(agent, limit=limit, use_source_case_text=use_source_case_text)
         summary = runner.generate_summary(results)
 
         return {
@@ -366,8 +367,8 @@ def main():
 
             params['model'] = st.selectbox(
                 "OpenAI Model",
-                ['gpt-4o-mini', 'gpt-3.5-turbo', 'gpt-4o', 'gpt-4.1-mini', 'gpt-5-mini'],
-                index=4
+                ['gpt-4o-mini', 'gpt-3.5-turbo', 'gpt-4o', 'gpt-4.1-mini', 'gpt-5-mini', 'gpt-5'],
+                index=0
             )
             params['temperature'] = st.slider("Temperature", 0.0, 1.0, 0.1, 0.01)
             params['max_questions'] = st.slider("Max Follow-up Questions", 1, 5, 3, 1)
@@ -392,6 +393,11 @@ def main():
             help="Number of threads to use when running test cases in parallel. Set to 1 to run sequentially."
         )
         test_limit = st.slider("Test Cases to Run", 10, 150, 150, 10)
+        use_source_case_text = st.checkbox(
+            "Use Source Case Text",
+            value=False,
+            help="Use the original source case text instead of the conversation. This provides a single turn with empty speaker and the meta.source_case_text as the message."
+        )
 
         # Run test button
         run_test = st.button("Run Test", type="primary", use_container_width=True)
@@ -409,7 +415,7 @@ def main():
 
             with st.spinner(f"Running test for {agent_name}..."):
                 # Run test
-                test_result = run_agent_test(agent_config, test_limit, max_workers=parallel_workers)
+                test_result = run_agent_test(agent_config, test_limit, max_workers=parallel_workers, use_source_case_text=use_source_case_text)
 
                 if test_result:
                     st.session_state['last_test_result'] = test_result
@@ -460,7 +466,8 @@ def main():
                     'Predicted ESI': r.predicted_esi,
                     'Correct': '✅' if r.correct else '❌',
                     'Confidence': f"{r.confidence:.2%}" if r.confidence else "N/A",
-                    'Time (ms)': f"{r.processing_time * 1000:.1f}"
+                    'Time (ms)': f"{r.processing_time * 1000:.1f}",
+                    'Rationale': r.rationale[:100] + "..." if r.rationale and len(r.rationale) > 100 else (r.rationale or "N/A")
                 })
 
             df = pd.DataFrame(results_data)
@@ -482,7 +489,8 @@ def main():
                         'correct': r.correct,
                         'confidence': r.confidence,
                         'processing_time': r.processing_time,
-                        'agent_name': r.agent_name
+                        'agent_name': r.agent_name,
+                        'rationale': r.rationale
                     } for r in result['results']])
 
                     csv = full_df.to_csv(index=False)

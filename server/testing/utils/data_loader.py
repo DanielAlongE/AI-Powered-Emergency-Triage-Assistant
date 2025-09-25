@@ -94,11 +94,17 @@ class TestDataLoader:
         # Extract case type
         case_type = case_data.get('type', 'Unknown')
 
+        # Extract source case text from meta field
+        source_case_text = None
+        if 'meta' in case_data and 'source_case_text' in case_data['meta']:
+            source_case_text = case_data['meta']['source_case_text']
+
         return TestMedicalConversation(
             turns=conversation_turns,
             case_id=case_id,
             expected_esi=expected_esi,
-            case_type=case_type
+            case_type=case_type,
+            source_case_text=source_case_text
         )
 
     @staticmethod
