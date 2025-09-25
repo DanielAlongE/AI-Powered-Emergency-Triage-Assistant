@@ -35,6 +35,13 @@ from agents.implementations.rule_based_agent import RuleBasedTriageAgent
 # except ImportError:
 LLM_AVAILABLE = False
 
+# Import new HandbookRagOpenAiAgent
+try:
+    from agents.implementations.handbook_rag_openai_agent import HandbookRagOpenAiAgent
+    HANDBOOK_RAG_AVAILABLE = True
+except ImportError:
+    HANDBOOK_RAG_AVAILABLE = False
+
 
 # Configure Streamlit page
 st.set_page_config(
@@ -85,10 +92,14 @@ st.markdown("""
 
 
 @st.cache_data(ttl=300)  # Cache for 5 minutes
-def load_test_data():
-    """Load test data with caching."""
+def load_test_data(max_workers: int = 1):
+    """Load test data with caching.
+
+    Args:
+        max_workers: Number of parallel workers for the test runner.
+    """
     try:
-        runner = TriageTestRunner(max_workers=1)  # Single worker for UI responsiveness
+        runner = TriageTestRunner(max_workers=max_workers)
         stats = runner.load_test_data()
         return runner, stats
     except Exception as e:
@@ -97,9 +108,15 @@ def load_test_data():
 
 
 @st.cache_data(ttl=60)  # Cache for 1 minute
-def run_agent_test(agent_config: Dict[str, Any], limit: int = 50):
-    """Run agent test with caching."""
-    runner, _ = load_test_data()
+def run_agent_test(agent_config: Dict[str, Any], limit: int = 50, max_workers: int = 1):
+    """Run agent test with caching.
+
+    Args:
+        agent_config: Agent configuration dict.
+        limit: Max number of test cases to run.
+        max_workers: Number of parallel workers to use during testing.
+    """
+    runner, _ = load_test_data(max_workers)
     if runner is None:
         return None
 
@@ -116,6 +133,13 @@ def run_agent_test(agent_config: Dict[str, Any], limit: int = 50):
             agent = LLMTriageAgent(agent_name, agent_config.get('params', {}))
         elif agent_type == 'hybrid' and LLM_AVAILABLE:
             agent = HybridTriageAgent(agent_name, agent_config.get('params', {}))
+        elif agent_type == 'handbook_rag_openai' and HANDBOOK_RAG_AVAILABLE:
+            # Set up environment for HandbookRagOpenAiAgent
+            params = agent_config.get('params', {})
+            if 'openai_api_key' in params:
+                import os
+                os.environ['OPENAI_API_KEY'] = params['openai_api_key']
+            agent = HandbookRagOpenAiAgent(agent_name, params)
         else:
             return None
 
@@ -124,7 +148,8 @@ def run_agent_test(agent_config: Dict[str, Any], limit: int = 50):
         summary = runner.generate_summary(results)
 
         return {
-            'agent': agent,
+            'agent_name': agent.name,
+            'agent_type': agent_type,
             'results': results,
             'summary': summary,
             'timestamp': datetime.now()
@@ -277,14 +302,21 @@ def main():
 
         # Agent selection
         st.subheader("🤖 Select Agent")
+        agent_options = ['random', 'rule_based']
+        if LLM_AVAILABLE:
+            agent_options.extend(['llm', 'hybrid'])
+        if HANDBOOK_RAG_AVAILABLE:
+            agent_options.append('handbook_rag_openai')
+
         agent_type = st.selectbox(
             "Agent Type",
-            options=['random', 'rule_based'] + (['llm', 'hybrid'] if LLM_AVAILABLE else []),
+            options=agent_options,
             format_func=lambda x: {
                 'random': 'Random Agent',
                 'rule_based': 'Rule-Based Agent',
                 'llm': 'LLM Agent',
-                'hybrid': 'Hybrid Agent'
+                'hybrid': 'Hybrid Agent',
+                'handbook_rag_openai': 'Handbook RAG + OpenAI Agent'
             }.get(x, x)
         )
 
@@ -318,10 +350,48 @@ def main():
             params['rule_weight'] = st.slider("Rule Weight", 0.0, 1.0, 0.3, 0.01)
             params['llm_weight'] = st.slider("LLM Weight", 0.0, 1.0, 0.7, 0.01)
 
+        elif agent_type == 'handbook_rag_openai' and HANDBOOK_RAG_AVAILABLE:
+            st.subheader("Handbook RAG + OpenAI Parameters")
+
+            # OpenAI Configuration
+            st.write("**OpenAI Configuration:**")
+            openai_key = st.text_input(
+                "OpenAI API Key",
+                type="password",
+                placeholder="sk-...",
+                help="Enter your OpenAI API key for this session"
+            )
+            if openai_key:
+                params['openai_api_key'] = openai_key
+
+            params['model'] = st.selectbox(
+                "OpenAI Model",
+                ['gpt-4o-mini', 'gpt-3.5-turbo', 'gpt-4o', 'gpt-4.1-mini', 'gpt-5-mini'],
+                index=4
+            )
+            params['temperature'] = st.slider("Temperature", 0.0, 1.0, 0.1, 0.01)
+            params['max_questions'] = st.slider("Max Follow-up Questions", 1, 5, 3, 1)
+
+            # Status indicators
+            if openai_key:
+                st.success("✅ OpenAI API Key provided")
+            else:
+                st.warning("⚠️ OpenAI API Key required for this agent")
+
+            st.info("💡 This agent uses RAG (retrieval-augmented generation) with ESI protocol documents and red-flag detection for enhanced triage assessment.")
+
         # Test parameters
         st.divider()
         st.subheader("🧪 Test Parameters")
-        test_limit = st.slider("# of Test Cases to Run", 10, 150, 150, 10)
+        parallel_workers = st.number_input(
+            "Parallel Workers",
+            min_value=1,
+            max_value=32,
+            value=1,
+            step=1,
+            help="Number of threads to use when running test cases in parallel. Set to 1 to run sequentially."
+        )
+        test_limit = st.slider("Test Cases to Run", 10, 150, 150, 10)
 
         # Run test button
         run_test = st.button("Run Test", type="primary", use_container_width=True)
@@ -339,7 +409,7 @@ def main():
 
             with st.spinner(f"Running test for {agent_name}..."):
                 # Run test
-                test_result = run_agent_test(agent_config, test_limit)
+                test_result = run_agent_test(agent_config, test_limit, max_workers=parallel_workers)
 
                 if test_result:
                     st.session_state['last_test_result'] = test_result
@@ -444,6 +514,11 @@ def main():
         - **Random Agent**: Baseline for comparison
         - **Rule-Based Agent**: Basic keyword and pattern matching
         """)
+
+        if HANDBOOK_RAG_AVAILABLE:
+            st.markdown("""
+        - **Handbook RAG + OpenAI Agent**: Advanced AI-powered assessment using OpenAI with RAG and red-flag detection
+            """)
 
         if LLM_AVAILABLE:
             st.markdown("""
