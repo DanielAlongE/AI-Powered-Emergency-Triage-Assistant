@@ -78,13 +78,14 @@ class TriageTestRunner:
 
         print()
 
-    def test_agent(self, agent: BaseTriageAgent, limit: Optional[int] = None) -> List[TestResult]:
+    def test_agent(self, agent: BaseTriageAgent, limit: Optional[int] = None, use_source_case_text: bool = False) -> List[TestResult]:
         """
         Test a single agent against the loaded test data.
 
         Args:
             agent: The triage agent to test
             limit: Optional limit on number of test cases to run
+            use_source_case_text: If True, use source case text instead of conversation
 
         Returns:
             List of TestResult objects
@@ -113,13 +114,13 @@ class TriageTestRunner:
                 if i % 50 == 0:  # Progress update every 50 cases
                     print(f"Processing case {i+1}/{len(test_conversations)}...")
 
-                result = self._test_single_case(agent, conversation)
+                result = self._test_single_case(agent, conversation, use_source_case_text)
                 results.append(result)
         else:
             # Multi-threaded execution
             with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
                 future_to_conversation = {
-                    executor.submit(self._test_single_case, agent, conv): conv
+                    executor.submit(self._test_single_case, agent, conv, use_source_case_text): conv
                     for conv in test_conversations
                 }
 
@@ -138,19 +139,29 @@ class TriageTestRunner:
 
         return results
 
-    def _test_single_case(self, agent: BaseTriageAgent, conversation: TestMedicalConversation) -> TestResult:
+    def _test_single_case(self, agent: BaseTriageAgent, conversation: TestMedicalConversation, use_source_case_text: bool = False) -> TestResult:
         """
         Test a single conversation with an agent.
 
         Args:
             agent: The triage agent to test
             conversation: The conversation to test
+            use_source_case_text: If True, use source case text instead of conversation
 
         Returns:
             TestResult object
         """
+        # Choose the conversation content based on the flag
+        if use_source_case_text and conversation.source_case_text:
+            # Create a single turn conversation with empty speaker and source text as message
+            from models.esi_assessment import ConversationTurn
+            turns = [ConversationTurn(speaker="", message=conversation.source_case_text)]
+        else:
+            # Use the regular conversation turns
+            turns = conversation.turns
+
         # Convert TestMedicalConversation to production MedicalConversation
-        production_conversation = MedicalConversation(turns=conversation.turns)
+        production_conversation = MedicalConversation(turns=turns)
         assessment, processing_time = agent.triage_with_timing(production_conversation)
 
         return TestResult(
@@ -164,13 +175,14 @@ class TriageTestRunner:
             rationale=assessment.rationale
         )
 
-    def test_multiple_agents(self, agents: List[BaseTriageAgent], limit: Optional[int] = None) -> Dict[str, List[TestResult]]:
+    def test_multiple_agents(self, agents: List[BaseTriageAgent], limit: Optional[int] = None, use_source_case_text: bool = False) -> Dict[str, List[TestResult]]:
         """
         Test multiple agents against the same test data.
 
         Args:
             agents: List of agents to test
             limit: Optional limit on number of test cases per agent
+            use_source_case_text: If True, use source case text instead of conversation
 
         Returns:
             Dict mapping agent names to their test results
@@ -180,7 +192,7 @@ class TriageTestRunner:
 
         all_results = {}
         for agent in agents:
-            results = self.test_agent(agent, limit)
+            results = self.test_agent(agent, limit, use_source_case_text)
             all_results[agent.name] = results
 
         return all_results

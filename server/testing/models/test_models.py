@@ -14,6 +14,7 @@ class TestMedicalConversation(BaseModel):
     case_id: Optional[str] = Field(None, description="Unique identifier for the case")
     expected_esi: Optional[int] = Field(None, ge=1, le=5, description="Expected ESI level for testing")
     case_type: Optional[str] = Field(None, description="Type of case (e.g., 'Practice')")
+    source_case_text: Optional[str] = Field(None, description="Original source case text from meta field")
 
     @validator('expected_esi')
     def validate_expected_esi(cls, v):

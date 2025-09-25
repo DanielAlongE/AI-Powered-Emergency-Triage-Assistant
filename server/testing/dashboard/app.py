@@ -108,13 +108,14 @@ def load_test_data(max_workers: int = 1):
 
 
 @st.cache_data(ttl=60)  # Cache for 1 minute
-def run_agent_test(agent_config: Dict[str, Any], limit: int = 50, max_workers: int = 1):
+def run_agent_test(agent_config: Dict[str, Any], limit: int = 50, max_workers: int = 1, use_source_case_text: bool = False):
     """Run agent test with caching.
 
     Args:
         agent_config: Agent configuration dict.
         limit: Max number of test cases to run.
         max_workers: Number of parallel workers to use during testing.
+        use_source_case_text: If True, use source case text instead of conversation.
     """
     runner, _ = load_test_data(max_workers)
     if runner is None:
@@ -144,7 +145,7 @@ def run_agent_test(agent_config: Dict[str, Any], limit: int = 50, max_workers: i
             return None
 
         # Run test
-        results = runner.test_agent(agent, limit=limit)
+        results = runner.test_agent(agent, limit=limit, use_source_case_text=use_source_case_text)
         summary = runner.generate_summary(results)
 
         return {
@@ -392,6 +393,11 @@ def main():
             help="Number of threads to use when running test cases in parallel. Set to 1 to run sequentially."
         )
         test_limit = st.slider("Test Cases to Run", 10, 150, 150, 10)
+        use_source_case_text = st.checkbox(
+            "Use Source Case Text",
+            value=False,
+            help="Use the original source case text instead of the conversation. This provides a single turn with empty speaker and the meta.source_case_text as the message."
+        )
 
         # Run test button
         run_test = st.button("Run Test", type="primary", use_container_width=True)
@@ -409,7 +415,7 @@ def main():
 
             with st.spinner(f"Running test for {agent_name}..."):
                 # Run test
-                test_result = run_agent_test(agent_config, test_limit, max_workers=parallel_workers)
+                test_result = run_agent_test(agent_config, test_limit, max_workers=parallel_workers, use_source_case_text=use_source_case_text)
 
                 if test_result:
                     st.session_state['last_test_result'] = test_result
