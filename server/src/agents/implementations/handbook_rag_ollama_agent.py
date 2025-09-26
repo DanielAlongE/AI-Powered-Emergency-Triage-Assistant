@@ -9,7 +9,7 @@ from models.esi_assessment import ESIAssessment, MedicalConversation
 from config import get_settings
 from logger import get_logger
 from services.ollama_client import get_ollama_gateway
-from services.rag import get_protocol_rag
+from services.rag_ollama import get_protocol_rag_ollama
 from services.red_flags import RedFlag, RedFlagDetector
 
 logger = get_logger(__name__)
@@ -53,7 +53,12 @@ class HandbookRagOllamaAgent(BaseTriageAgent):
     Emergency triage agent that uses RAG, red-flag detection, and Ollama
     to assess conversations and provide ESI recommendations.
 
-    Uses local Ollama models instead of OpenAI for inference.
+    Uses local Ollama models for both LLM inference and embeddings.
+
+    Key differences from HandbookRagOpenAiAgent:
+    - Uses Ollama embeddings (nomic-embed-text) instead of OpenAI embeddings
+    - Retrieves from ChromaDB instance with Ollama embeddings
+    - Uses Ollama LLM for inference instead of OpenAI
     """
 
     def __init__(self, name: str, config: Dict[str, Any] = None):
@@ -65,11 +70,11 @@ class HandbookRagOllamaAgent(BaseTriageAgent):
         if configure_logging:
             configure_logging(settings.log_level)
 
-        # Initialize components (same as HandbookRagOpenAiAgent)
+        # Initialize components (uses Ollama embeddings)
         ollama_host = config.get('ollama_host') if config else None
         inference_mode = config.get('inference_mode') if config else None
         self._gateway = get_ollama_gateway(host=ollama_host, inference_mode=inference_mode)
-        self._rag = get_protocol_rag()
+        self._rag = get_protocol_rag_ollama()  # Uses Ollama embeddings instead of OpenAI
         self._red_flag_detector = RedFlagDetector(settings.red_flag_lexicon_path)
         self._max_questions = settings.max_follow_up_questions
 

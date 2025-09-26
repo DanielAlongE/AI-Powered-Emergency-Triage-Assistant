@@ -33,7 +33,10 @@ class AppSettings(BaseSettings):
 
     esi_source_path: Path = Field(default=Path("data/esi_protocol_samples.md"), alias="ESI_SOURCE_PATH")
     chroma_db_path: Path = Field(default=Path("data/chroma"), alias="CHROMA_DB_PATH")
+    chroma_openai_path: Path = Field(default=Path("data/chroma_openai"), alias="CHROMA_OPENAI_PATH")
+    chroma_ollama_path: Path = Field(default=Path("data/chroma_ollama"), alias="CHROMA_OLLAMA_PATH")
     embedding_model: str = Field(default="text-embedding-3-small", alias="EMBEDDING_MODEL")
+    ollama_embedding_model: str = Field(default="nomic-embed-text", alias="OLLAMA_EMBEDDING_MODEL")
     red_flag_lexicon_path: Path = Field(default=Path("config/red_flags.yaml"))
     request_timeout_seconds: float = Field(default=30.0)
     transcript_window_seconds: int = Field(default=120)

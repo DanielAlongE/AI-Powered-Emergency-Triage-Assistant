@@ -2505,6 +2505,22 @@ tenacity = ">=8.1.0,<8.4.0 || >8.4.0,<10.0.0"
 typing-extensions = ">=4.7"
 
 [[package]]
+name = "langchain-ollama"
+version = "0.3.8"
+description = "An integration package connecting Ollama and LangChain"
+optional = false
+python-versions = ">=3.9"
+groups = ["main"]
+files = [
+    {file = "langchain_ollama-0.3.8-py3-none-any.whl", hash = "sha256:79898316d5663c6b08bc758c82b4e136f826cad2be84b4a26be11f1b0ebf686a"},
+    {file = "langchain_ollama-0.3.8.tar.gz", hash = "sha256:ba22537bd4dac4424cb8063bb2930fc31c6704db94728b30b75b4db71ccb214e"},
+]
+
+[package.dependencies]
+langchain-core = ">=0.3.76,<1.0.0"
+ollama = ">=0.5.3,<1.0.0"
+
+[[package]]
 name = "langchain-openai"
 version = "0.3.33"
 description = "An integration package connecting OpenAI and LangChain"
@@ -7151,4 +7167,4 @@ cffi = ["cffi (>=1.17,<2.0) ; platform_python_implementation != \"PyPy\" and pyt
 [metadata]
 lock-version = "2.1"
 python-versions = "<3.14,>3.10"
-content-hash = "1cdaba4565aef87bb568d10696a414db44414ad7651558a880ef0144e6fb867e"
+content-hash = "a4dbd972c592108883bdddd9366f339077244a9a3dae106795d0dec44816aadb"
