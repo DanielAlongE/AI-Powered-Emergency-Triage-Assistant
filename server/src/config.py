@@ -20,8 +20,12 @@ class AppSettings(BaseSettings):
     ollama_host: str = Field(default="http://localhost:11434", alias="OLLAMA_HOST")
     ollama_default_model: str = Field(default="qwen2.5:0.5b", alias="OLLAMA_DEFAULT_MODEL")
 
+    # Ollama Cloud settings
+    ollama_cloud_enabled: bool = Field(default=False, alias="OLLAMA_CLOUD_ENABLED")
+    ollama_api_key: str | None = Field(default=None, alias="OLLAMA_API_KEY")
+
     # Modal settings for remote GPU inference
-    inference_mode: str = Field(default="auto", alias="INFERENCE_MODE")  # local, modal, auto
+    inference_mode: str = Field(default="auto", alias="INFERENCE_MODE")  # local, modal, cloud, auto
     modal_endpoint: str | None = Field(default=None, alias="MODAL_ENDPOINT")
     modal_gpu_type: str = Field(default="t4", alias="MODAL_GPU_TYPE")  # t4, a10g, a100
     modal_timeout: int = Field(default=600, alias="MODAL_TIMEOUT")  # seconds

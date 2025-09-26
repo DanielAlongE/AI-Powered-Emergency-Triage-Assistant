@@ -408,14 +408,15 @@ def main():
 
             inference_mode = st.selectbox(
                 "Inference Location",
-                options=["auto", "local", "modal"],
+                options=["auto", "local", "modal", "cloud"],
                 index=2,
                 format_func=lambda x: {
                     "auto": "🔄 Auto (Try Modal, fallback to Local)",
                     "local": "🖥️ Local CPU/GPU",
-                    "modal": "☁️ Modal (Remote GPU)"
+                    "modal": "☁️ Modal (Remote GPU)",
+                    "cloud": "🌐 Ollama Cloud (Hosted Inference)"
                 }.get(x, x),
-                help="Choose where to run inference. Auto tries Modal first and falls back to local if needed."
+                help="Choose where to run inference. Cloud provides access to massive models via Ollama's hosted service."
             )
             params['inference_mode'] = inference_mode
 
@@ -458,10 +459,18 @@ def main():
             # Model selection with predefined options and custom input
             st.write("**Model Selection:**")
 
-            common_models = [
+            # Separate local/modal models from cloud models
+            local_models = [
                 'qwen2.5:0.5b', 'qwen2.5:1.5b', 'llama3.2:1b', 'gemma2:2b', 'phi3.5',
                 'llama3.2', 'llama3.1', 'llama2', 'qwen2:7b-instruct', 'gpt-oss:20b'
             ]
+
+            cloud_models = [
+                'gpt-oss:20b-cloud', 'gpt-oss:120b-cloud',
+                'qwen3-coder:480b-cloud', 'deepseek-v3.1:671b-cloud'
+            ]
+
+            common_models = local_models + ["─── Cloud Models (Require ollama signin) ───"] + cloud_models
 
             model_input_method = st.radio(
                 "Model Input Method",
@@ -471,12 +480,21 @@ def main():
             )
 
             if model_input_method == "Select from common models":
-                params['model'] = st.selectbox(
+                selected_model = st.selectbox(
                     "Common Models",
                     common_models,
                     index=9,  # Default to gpt-oss:20b
-                    help="Pre-defined models ordered by speed (fastest first). These are pre-pulled on Modal for instant startup."
+                    help="Local/Modal models are pre-pulled for fast startup. Cloud models require 'ollama signin' and provide access to massive models."
                 )
+
+                # Handle separator selection by defaulting to first cloud model
+                if "─── Cloud Models" in selected_model:
+                    params['model'] = 'gpt-oss:20b-cloud'
+                    st.info("🔒 Cloud model selected. Make sure you're signed in with `ollama signin`")
+                else:
+                    params['model'] = selected_model
+                    if selected_model.endswith('-cloud'):
+                        st.info("🔒 Cloud model selected. Make sure you're signed in with `ollama signin`")
             else:
                 params['model'] = st.text_input(
                     "Custom Model Name",
@@ -503,6 +521,8 @@ def main():
                 st.info("🖥️ This agent uses local Ollama models for inference. Ensure Ollama is running and the model is installed.")
             elif inference_mode == "modal":
                 st.info("☁️ This agent uses Modal for remote GPU inference. Ensure your Modal endpoint is deployed and accessible.")
+            elif inference_mode == "cloud":
+                st.info("🌐 This agent uses Ollama Cloud for hosted inference. Requires authentication: `ollama signin`")
             else:  # auto
                 st.info("🔄 This agent tries Modal first, then falls back to local Ollama if needed.")
 
@@ -578,12 +598,14 @@ def main():
                 st.success("🟢 Ready for local inference")
             elif inference_mode == "modal" and modal_connected:
                 st.success("🟢 Ready for Modal inference")
+            elif inference_mode == "cloud":
+                st.success("🟢 Ready for cloud inference (requires ollama signin)")
             elif inference_mode == "auto" and (local_connected or modal_connected):
                 ready_modes = []
                 if modal_connected: ready_modes.append("Modal")
                 if local_connected: ready_modes.append("Local")
                 st.success(f"🟢 Ready for inference ({' + '.join(ready_modes)} available)")
-            else:
+            elif inference_mode != "cloud":
                 st.error("🔴 No inference backends available")
 
             st.info("💡 This agent uses RAG with ESI protocol documents and red-flag detection for enhanced triage assessment.")

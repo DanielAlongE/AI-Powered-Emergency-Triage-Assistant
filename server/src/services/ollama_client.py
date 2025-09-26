@@ -11,6 +11,11 @@ from logger import get_logger
 logger = get_logger(__name__)
 
 
+def _is_cloud_model(model: str) -> bool:
+    """Check if a model is an Ollama cloud model (ends with -cloud)."""
+    return model.endswith("-cloud")
+
+
 def _extract_json_blob(text: str) -> Dict[str, Any]:
     """Extract JSON from text response - same as openai_client.py"""
     if not text:
@@ -33,7 +38,7 @@ def _extract_json_blob(text: str) -> Dict[str, Any]:
 
 
 class OllamaGateway:
-    """Ollama client gateway for local and remote (Modal) LLM inference."""
+    """Ollama client gateway for local, cloud, and remote (Modal) LLM inference."""
 
     def __init__(self, host: Optional[str] = None, inference_mode: Optional[str] = None) -> None:
         settings = get_settings()
@@ -45,26 +50,51 @@ class OllamaGateway:
         self._inference_mode = inference_mode or settings.inference_mode
         self._modal_endpoint = settings.modal_endpoint
 
+        # Simple cache for model availability (to reduce /api/tags calls)
+        self._model_cache = {}
+        self._cache_timestamp = 0
+        self._cache_duration = 30  # Cache for 30 seconds
+
         # Initialize appropriate client
         if self._inference_mode == "modal" and self._modal_endpoint:
             self._client = None  # Will use HTTP client for Modal
             self._is_modal = True
+            self._is_cloud = False
+        elif self._inference_mode == "cloud" or settings.ollama_cloud_enabled:
+            # For cloud mode, use ollama client with authentication
+            self._client = ollama.Client()  # Uses default ollama.com endpoint when authenticated
+            self._is_modal = False
+            self._is_cloud = True
         else:
             self._client = ollama.Client(host=self._host)
             self._is_modal = False
+            self._is_cloud = False
 
         logger.info("ollama_gateway_initialized",
                    host=self._host,
                    default_model=self._default_model,
                    inference_mode=self._inference_mode,
-                   is_modal=self._is_modal)
+                   is_modal=self._is_modal,
+                   is_cloud=self._is_cloud)
 
     def _check_model_availability(self, model: str) -> bool:
-        """Check if model is available (locally or on Modal)."""
+        """Check if model is available (locally, cloud, or on Modal)."""
         if self._is_modal:
             # For Modal, we assume models can be pulled on demand
             # Or we could make an HTTP request to the list endpoint
             return True
+
+        if self._is_cloud or _is_cloud_model(model):
+            # For cloud models, we assume they're available if authenticated
+            # The ollama library will handle authentication
+            return True
+
+        # Check cache first
+        import time
+        current_time = time.time()
+        if (current_time - self._cache_timestamp < self._cache_duration and
+            self._model_cache and model in self._model_cache):
+            return self._model_cache[model]
 
         try:
             models_response = self._client.list()
@@ -76,8 +106,15 @@ class OllamaGateway:
                     if hasattr(model_info, 'model'):
                         available_models.append(model_info.model)
 
+            # Update cache
+            self._model_cache.clear()
+            self._cache_timestamp = current_time
+            for available_model in available_models:
+                self._model_cache[available_model] = True
+
             # Direct match first
             if model in available_models:
+                self._model_cache[model] = True
                 return True
 
             # Try fuzzy matching (in case of tag differences like :latest)
@@ -86,8 +123,11 @@ class OllamaGateway:
                 model_base = model.split(':')[0]
                 available_base = available_model.split(':')[0]
                 if model_base == available_base:
+                    self._model_cache[model] = True
                     return True
 
+            # Cache the negative result too
+            self._model_cache[model] = False
             logger.info("model_not_found",
                        requested_model=model,
                        available_models=available_models)
@@ -146,8 +186,16 @@ class OllamaGateway:
         if json_schema:
             prompt += "\n\nPlease respond with valid JSON only, matching the required schema structure."
 
-        # Handle Modal vs Local inference
-        if self._is_modal:
+        # Handle Modal vs Cloud vs Local inference
+        if _is_cloud_model(model):
+            # Always use cloud for cloud models regardless of mode
+            text = await self._cloud_completion(prompt, model, temperature, json_schema)
+
+        elif self._inference_mode == "cloud" or self._is_cloud:
+            # Force cloud mode
+            text = await self._cloud_completion(prompt, model, temperature, json_schema)
+
+        elif self._is_modal:
             # Use Modal endpoint
             try:
                 text = await self._modal_completion(prompt, model, temperature)
@@ -176,8 +224,8 @@ class OllamaGateway:
 
     async def _local_completion(self, prompt: str, model: str, temperature: float, json_schema: Optional[Dict] = None) -> str:
         """Handle local Ollama completion."""
-        # Check if model is available locally
-        if not self._check_model_availability(model):
+        # Check if model is available locally (skip for cloud models)
+        if not _is_cloud_model(model) and not self._check_model_availability(model):
             logger.warning("model_not_available", model=model)
             try:
                 models_response = self._client.list()
@@ -213,6 +261,28 @@ class OllamaGateway:
         loop = asyncio.get_running_loop()
         result = await loop.run_in_executor(None, _call)
         logger.info("ollama_completion_complete", model=model, mode="local")
+        return result
+
+    async def _cloud_completion(self, prompt: str, model: str, temperature: float, json_schema: Optional[Dict] = None) -> str:
+        """Handle Ollama cloud completion."""
+        # Prepare options
+        options = {'temperature': temperature}
+
+        def _call() -> str:
+            try:
+                response = self._client.chat(
+                    model=model,
+                    messages=[{"role": "user", "content": prompt}],
+                    options=options
+                )
+                return response['message']['content']
+            except Exception as e:
+                logger.error("ollama_cloud_completion_error", error=str(e), model=model)
+                raise
+
+        loop = asyncio.get_running_loop()
+        result = await loop.run_in_executor(None, _call)
+        logger.info("ollama_completion_complete", model=model, mode="cloud")
         return result
 
     async def _modal_completion_with_fallback(self, prompt: str, model: str, temperature: float) -> str:
