@@ -1,7 +1,7 @@
 from fastapi import APIRouter, File, Form, UploadFile
 import io
 import numpy as np
-from pydub import AudioSegment
+import ffmpeg
 from app.schemas import ConversationResponse, ConversationRequest, TranscriptionRequest, TranscriptionResponse
 from models.llama import ConversationAnalizer, MODEL_GEMMA_3
 from models.transcription import VoskTranscriber
@@ -16,13 +16,17 @@ async def transcribe(
 ):
     audio_data = await audio.read()
 
-    # Wrap the binary data in an in-memory file-like object
-    audio_stream = io.BytesIO(audio_data)
+    # Use FFmpeg to convert to 16-bit PCM mono at 16kHz
+    process = ffmpeg.input('pipe:0').output('pipe:1', format='s16le', acodec='pcm_s16le', ac=1, ar=16000).run_async(
+        pipe_stdin=True, pipe_stdout=True, pipe_stderr=True
+    )
 
-    audio_segment = AudioSegment.from_file(audio_stream, format='webm')        
-    audio_segment = audio_segment.set_frame_rate(16000).set_channels(1)
-    audio_np_array = np.array(audio_segment.get_array_of_samples())
-    sample_rate = audio_segment.frame_rate
+    process.stdin.write(audio_data)
+    process.stdin.close()
+    out = process.stdout.read()
+
+    audio_np_array = np.frombuffer(out, dtype=np.int16)
+    sample_rate = 16000
 
     result = VoskTranscriber().transcribe((sample_rate, audio_np_array))
     
