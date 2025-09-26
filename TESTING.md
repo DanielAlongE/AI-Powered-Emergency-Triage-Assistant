@@ -135,6 +135,33 @@ poetry run dashboard
 # Access at http://localhost:8501
 ```
 
+## Modal GPU Setup (Optional - For Fast Inference)
+
+### 1. Install & Setup Modal
+
+```bash
+# Install Modal (already included in dependencies)
+poetry run modal setup  # Follow prompts to authenticate
+```
+
+### 2. Deploy Ollama Service to GPU
+
+```bash
+# From server/ directory
+poetry run modal deploy modal_ollama_service.py
+```
+
+**Copy the endpoint URL** from deployment output (looks like: `https://your-app--ollama-serve.modal.run`)
+
+### 3. Configure Dashboard
+
+1. Select **"Handbook RAG + Ollama Agent"**
+2. Set **Inference Location** to **"Auto"** or **"Modal"**
+3. Paste your **Modal endpoint URL**
+4. Choose **T4 GPU** for cost-effectiveness
+
+**That's it!** The dashboard handles everything else automatically.
+
 ## Usage Examples
 
 ### Dashboard Visualization

@@ -35,12 +35,18 @@ from agents.implementations.rule_based_agent import RuleBasedTriageAgent
 # except ImportError:
 LLM_AVAILABLE = False
 
-# Import new HandbookRagOpenAiAgent
+# Import handbook RAG agents
 try:
     from agents.implementations.handbook_rag_openai_agent import HandbookRagOpenAiAgent
-    HANDBOOK_RAG_AVAILABLE = True
+    HANDBOOK_RAG_OPENAI_AVAILABLE = True
 except ImportError:
-    HANDBOOK_RAG_AVAILABLE = False
+    HANDBOOK_RAG_OPENAI_AVAILABLE = False
+
+try:
+    from agents.implementations.handbook_rag_ollama_agent import HandbookRagOllamaAgent
+    HANDBOOK_RAG_OLLAMA_AVAILABLE = True
+except ImportError:
+    HANDBOOK_RAG_OLLAMA_AVAILABLE = False
 
 
 # Configure Streamlit page
@@ -134,13 +140,23 @@ def run_agent_test(agent_config: Dict[str, Any], limit: int = 50, max_workers: i
             agent = LLMTriageAgent(agent_name, agent_config.get('params', {}))
         elif agent_type == 'hybrid' and LLM_AVAILABLE:
             agent = HybridTriageAgent(agent_name, agent_config.get('params', {}))
-        elif agent_type == 'handbook_rag_openai' and HANDBOOK_RAG_AVAILABLE:
+        elif agent_type == 'handbook_rag_openai' and HANDBOOK_RAG_OPENAI_AVAILABLE:
             # Set up environment for HandbookRagOpenAiAgent
             params = agent_config.get('params', {})
             if 'openai_api_key' in params:
                 import os
                 os.environ['OPENAI_API_KEY'] = params['openai_api_key']
             agent = HandbookRagOpenAiAgent(agent_name, params)
+        elif agent_type == 'handbook_rag_ollama' and HANDBOOK_RAG_OLLAMA_AVAILABLE:
+            # Create HandbookRagOllamaAgent with Modal support
+            params = agent_config.get('params', {})
+
+            # Set environment variables for Modal if provided
+            if 'modal_endpoint' in params:
+                import os
+                os.environ['MODAL_ENDPOINT'] = params['modal_endpoint']
+
+            agent = HandbookRagOllamaAgent(agent_name, params)
         else:
             return None
 
@@ -306,8 +322,10 @@ def main():
         agent_options = ['random', 'rule_based']
         if LLM_AVAILABLE:
             agent_options.extend(['llm', 'hybrid'])
-        if HANDBOOK_RAG_AVAILABLE:
+        if HANDBOOK_RAG_OPENAI_AVAILABLE:
             agent_options.append('handbook_rag_openai')
+        if HANDBOOK_RAG_OLLAMA_AVAILABLE:
+            agent_options.append('handbook_rag_ollama')
 
         agent_type = st.selectbox(
             "Agent Type",
@@ -317,7 +335,8 @@ def main():
                 'rule_based': 'Rule-Based Agent',
                 'llm': 'LLM Agent',
                 'hybrid': 'Hybrid Agent',
-                'handbook_rag_openai': 'Handbook RAG + OpenAI Agent'
+                'handbook_rag_openai': 'Handbook RAG + OpenAI Agent',
+                'handbook_rag_ollama': 'Handbook RAG + Ollama Agent'
             }.get(x, x)
         )
 
@@ -351,7 +370,7 @@ def main():
             params['rule_weight'] = st.slider("Rule Weight", 0.0, 1.0, 0.3, 0.01)
             params['llm_weight'] = st.slider("LLM Weight", 0.0, 1.0, 0.7, 0.01)
 
-        elif agent_type == 'handbook_rag_openai' and HANDBOOK_RAG_AVAILABLE:
+        elif agent_type == 'handbook_rag_openai' and HANDBOOK_RAG_OPENAI_AVAILABLE:
             st.subheader("Handbook RAG + OpenAI Parameters")
 
             # OpenAI Configuration
@@ -380,6 +399,160 @@ def main():
                 st.warning("⚠️ OpenAI API Key required for this agent")
 
             st.info("💡 This agent uses RAG (retrieval-augmented generation) with ESI protocol documents and red-flag detection for enhanced triage assessment.")
+
+        elif agent_type == 'handbook_rag_ollama' and HANDBOOK_RAG_OLLAMA_AVAILABLE:
+            st.subheader("Handbook RAG + Ollama Parameters")
+
+            # Inference Configuration
+            st.write("**Inference Configuration:**")
+
+            inference_mode = st.selectbox(
+                "Inference Location",
+                options=["auto", "local", "modal"],
+                index=0,
+                format_func=lambda x: {
+                    "auto": "🔄 Auto (Try Modal, fallback to Local)",
+                    "local": "🖥️ Local CPU/GPU",
+                    "modal": "☁️ Modal (Remote GPU)"
+                }.get(x, x),
+                help="Choose where to run inference. Auto tries Modal first and falls back to local if needed."
+            )
+            params['inference_mode'] = inference_mode
+
+            # Show relevant configuration based on mode
+            if inference_mode in ["local", "auto"]:
+                st.write("**Local Ollama Settings:**")
+                ollama_host = st.text_input(
+                    "Ollama Host",
+                    value="http://localhost:11434",
+                    placeholder="http://localhost:11434",
+                    help="Local Ollama server host URL"
+                )
+                if ollama_host:
+                    params['ollama_host'] = ollama_host
+
+            if inference_mode in ["modal", "auto"]:
+                st.write("**Modal Settings:**")
+                modal_endpoint = st.text_input(
+                    "Modal Endpoint",
+                    value="",
+                    placeholder="https://your-app--ollama-serve.modal.run",
+                    help="Your deployed Modal endpoint URL. Leave empty to use environment variable."
+                )
+                if modal_endpoint:
+                    params['modal_endpoint'] = modal_endpoint
+
+                modal_gpu = st.selectbox(
+                    "GPU Type",
+                    options=["t4", "a10g", "a100"],
+                    index=0,
+                    format_func=lambda x: {
+                        "t4": "T4 (~$0.59/hr, good balance)",
+                        "a10g": "A10G (~$1.32/hr, faster)",
+                        "a100": "A100 (~$4/hr, fastest)"
+                    }.get(x, x),
+                    help="GPU type for Modal inference"
+                )
+                params['modal_gpu_type'] = modal_gpu
+
+            params['model'] = st.selectbox(
+                "Ollama Model",
+                ['qwen2.5:0.5b', 'qwen2.5:1.5b', 'llama3.2:1b', 'gemma2:2b', 'phi3.5', 'llama3.2', 'llama3.1', 'llama2', 'qwen2:7b-instruct', 'gpt-oss:20b'],
+                index=0,
+                help="Select the Ollama model to use. Models ordered by speed (fastest first). Make sure the model is installed locally."
+            )
+            params['temperature'] = st.slider("Temperature", 0.0, 1.0, 0.3, 0.01)
+            params['max_questions'] = st.slider("Max Follow-up Questions", 1, 5, 3, 1)
+
+            # Status indicators based on inference mode
+            if inference_mode == "local":
+                st.info("🖥️ This agent uses local Ollama models for inference. Ensure Ollama is running and the model is installed.")
+            elif inference_mode == "modal":
+                st.info("☁️ This agent uses Modal for remote GPU inference. Ensure your Modal endpoint is deployed and accessible.")
+            else:  # auto
+                st.info("🔄 This agent tries Modal first, then falls back to local Ollama if needed.")
+
+            # Connection checks
+            local_connected = False
+            modal_connected = False
+
+            # Check local connection if applicable
+            if inference_mode in ["local", "auto"] and 'ollama_host' in locals():
+                try:
+                    import ollama
+                    ollama_client = ollama.Client(host=ollama_host)
+                    models_response = ollama_client.list()
+
+                    # Extract model names from Ollama ListResponse
+                    available_models = []
+                    if hasattr(models_response, 'models'):
+                        for model_info in models_response.models:
+                            if hasattr(model_info, 'model'):
+                                available_models.append(model_info.model)
+
+                    if available_models:
+                        st.success(f"✅ Local Ollama connected. Models: {', '.join(available_models[:3])}{'...' if len(available_models) > 3 else ''}")
+                        local_connected = True
+
+                        # Check model availability
+                        model_found = params['model'] in available_models
+                        if not model_found:
+                            # Fuzzy matching
+                            model_base = params['model'].split(':')[0]
+                            for available_model in available_models:
+                                if available_model.split(':')[0] == model_base:
+                                    model_found = True
+                                    break
+
+                        if model_found:
+                            st.success(f"✅ Model '{params['model']}' available locally")
+                        else:
+                            st.warning(f"⚠️ Model '{params['model']}' not found locally")
+                    else:
+                        st.warning("⚠️ Local Ollama has no models")
+
+                except Exception as e:
+                    st.error(f"❌ Local Ollama connection failed: {str(e)}")
+
+            # Check Modal connection if applicable
+            if inference_mode in ["modal", "auto"] and modal_endpoint:
+                try:
+                    import httpx
+                    import asyncio
+
+                    async def check_modal():
+                        async with httpx.AsyncClient(timeout=10) as client:
+                            response = await client.get(f"{modal_endpoint}/health")
+                            return response.json()
+
+                    # Run async check
+                    try:
+                        result = asyncio.run(check_modal())
+                        st.success(f"✅ Modal endpoint connected: {result.get('status', 'healthy')}")
+                        modal_connected = True
+                    except Exception:
+                        st.error("❌ Modal endpoint not accessible")
+
+                except Exception as e:
+                    st.error(f"❌ Modal connection check failed: {str(e)}")
+
+            elif inference_mode in ["modal", "auto"] and not modal_endpoint:
+                st.warning("⚠️ Modal endpoint URL required for Modal inference")
+
+            # Overall status
+            if inference_mode == "local" and local_connected:
+                st.success("🟢 Ready for local inference")
+            elif inference_mode == "modal" and modal_connected:
+                st.success("🟢 Ready for Modal inference")
+            elif inference_mode == "auto" and (local_connected or modal_connected):
+                ready_modes = []
+                if modal_connected: ready_modes.append("Modal")
+                if local_connected: ready_modes.append("Local")
+                st.success(f"🟢 Ready for inference ({' + '.join(ready_modes)} available)")
+            else:
+                st.error("🔴 No inference backends available")
+
+            st.info("💡 This agent uses RAG with ESI protocol documents and red-flag detection for enhanced triage assessment.")
 
         # Test parameters
         st.divider()
@@ -523,9 +696,14 @@ def main():
         - **Rule-Based Agent**: Basic keyword and pattern matching
         """)
 
-        if HANDBOOK_RAG_AVAILABLE:
+        if HANDBOOK_RAG_OPENAI_AVAILABLE:
             st.markdown("""
         - **Handbook RAG + OpenAI Agent**: Advanced AI-powered assessment using OpenAI with RAG and red-flag detection
+            """)
+
+        if HANDBOOK_RAG_OLLAMA_AVAILABLE:
+            st.markdown("""
+        - **Handbook RAG + Ollama Agent**: Advanced AI-powered assessment using local Ollama models with RAG and red-flag detection
             """)
 
         if LLM_AVAILABLE:
