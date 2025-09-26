@@ -409,7 +409,7 @@ def main():
             inference_mode = st.selectbox(
                 "Inference Location",
                 options=["auto", "local", "modal"],
-                index=0,
+                index=2,
                 format_func=lambda x: {
                     "auto": "🔄 Auto (Try Modal, fallback to Local)",
                     "local": "🖥️ Local CPU/GPU",
@@ -455,13 +455,47 @@ def main():
                 )
                 params['modal_gpu_type'] = modal_gpu
 
-            params['model'] = st.selectbox(
-                "Ollama Model",
-                ['qwen2.5:0.5b', 'qwen2.5:1.5b', 'llama3.2:1b', 'gemma2:2b', 'phi3.5', 'llama3.2', 'llama3.1', 'llama2', 'qwen2:7b-instruct', 'gpt-oss:20b'],
+            # Model selection with predefined options and custom input
+            st.write("**Model Selection:**")
+
+            common_models = [
+                'qwen2.5:0.5b', 'qwen2.5:1.5b', 'llama3.2:1b', 'gemma2:2b', 'phi3.5',
+                'llama3.2', 'llama3.1', 'llama2', 'qwen2:7b-instruct', 'gpt-oss:20b'
+            ]
+
+            model_input_method = st.radio(
+                "Model Input Method",
+                options=["Select from common models", "Enter custom model"],
                 index=0,
-                help="Select the Ollama model to use. Models ordered by speed (fastest first). Make sure the model is installed locally."
+                horizontal=True
             )
-            params['temperature'] = st.slider("Temperature", 0.0, 1.0, 0.3, 0.01)
+
+            if model_input_method == "Select from common models":
+                params['model'] = st.selectbox(
+                    "Common Models",
+                    common_models,
+                    index=9,  # Default to gpt-oss:20b
+                    help="Pre-defined models ordered by speed (fastest first). These are pre-pulled on Modal for instant startup."
+                )
+            else:
+                params['model'] = st.text_input(
+                    "Custom Model Name",
+                    value="gpt-oss:20b",
+                    placeholder="e.g., mixtral:8x7b, codellama:34b, custom:latest",
+                    help="Enter any Ollama model name. Will be pulled automatically if not available (may take time for large models)."
+                )
+
+                # Show common models as reference
+                with st.expander("💡 Common Model Examples"):
+                    st.write("**Pre-pulled models (instant):**")
+                    for model in common_models:
+                        st.write(f"• `{model}`")
+                    st.write("\n**Other popular models:**")
+                    st.write("• `mixtral:8x7b-instruct` - Mixtral 8x7B")
+                    st.write("• `codellama:34b` - Code Llama 34B")
+                    st.write("• `neural-chat:7b` - Intel Neural Chat")
+                    st.write("• `mistral:7b-instruct` - Mistral 7B Instruct")
+            params['temperature'] = st.slider("Temperature", 0.0, 1.0, 0.1, 0.1)
             params['max_questions'] = st.slider("Max Follow-up Questions", 1, 5, 3, 1)
 
             # Status indicators based on inference mode

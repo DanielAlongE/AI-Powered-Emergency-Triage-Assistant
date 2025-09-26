@@ -154,7 +154,7 @@ class HandbookRagOllamaAgent(BaseTriageAgent):
         """
         instructions = [
             "You are an emergency department triage copilot assisting a nurse.",
-            "Summarize the key symptoms, identify missing critical questions, and estimate an ESI level when possible.",
+            "Estimate an ESI level with the available information and identify follow up questions if any.",
             "Use the provided protocol context and red-flag list to inform your judgment.",
             "",
             "ESI Level Guidelines:",

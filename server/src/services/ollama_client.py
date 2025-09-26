@@ -101,7 +101,7 @@ class OllamaGateway:
         if not self._modal_endpoint:
             raise RuntimeError("Modal endpoint not configured")
 
-        async with httpx.AsyncClient(timeout=self._settings.modal_timeout) as client:
+        async with httpx.AsyncClient(timeout=self._settings.modal_timeout, follow_redirects=True) as client:
             payload = {
                 "model": model,
                 "messages": [{"role": "user", "content": prompt}],
