@@ -1,7 +1,6 @@
 from fastapi import APIRouter, File, Form, UploadFile
-import io
+import asyncio
 import numpy as np
-import ffmpeg
 from app.schemas import ConversationResponse, ConversationRequest, TranscriptionRequest, TranscriptionResponse
 from models.llama import ConversationAnalizer, MODEL_GEMMA_3
 from models.transcription import VoskTranscriber
@@ -16,23 +15,26 @@ async def transcribe(
 ):
     audio_data = await audio.read()
 
-    # Use FFmpeg to convert to 16-bit PCM mono at 16kHz
-    process = ffmpeg.input('pipe:0').output('pipe:1', format='s16le', acodec='pcm_s16le', ac=1, ar=16000).run_async(
-        pipe_stdin=True, pipe_stdout=True, pipe_stderr=True
+    # Use asyncio subprocess to run FFmpeg for conversion
+    process = await asyncio.create_subprocess_exec(
+        'ffmpeg', '-f', 'webm', '-i', 'pipe:0', '-f', 's16le', '-ac', '1', '-ar', '16000', 'pipe:1',
+        stdin=asyncio.subprocess.PIPE,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE
     )
+    out, err = await process.communicate(input=audio_data)
 
-    process.stdin.write(audio_data)
-    process.stdin.close()
-    out = process.stdout.read()
+    if process.returncode != 0:
+        raise RuntimeError(f"FFmpeg error: {err.decode()}")
 
     audio_np_array = np.frombuffer(out, dtype=np.int16)
     sample_rate = 16000
 
-    result = VoskTranscriber().transcribe((sample_rate, audio_np_array))
+    # Transcribe
+    transcriber = VoskTranscriber()
+    transcript = transcriber.transcribe((sample_rate, audio_np_array))
     
-    print(result)
-    print(sample_rate, str(audio_np_array.dtype), audio_np_array.shape)
-    return TranscriptionResponse(transcript=result)
+    return TranscriptionResponse(transcript=transcript)
 
 
 # return the most apropriate response based on red-flag words and conversation context
