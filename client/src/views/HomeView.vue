@@ -1,7 +1,11 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, inject, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import ChatBubble from '@/components/ChatBubble.vue'
 
+const apiUrl = inject('$apiUrl')
+
+const router = useRouter()
 const transcript = ref('')
 const isListening = ref(false)
 const recognition = ref(null)
@@ -40,6 +44,7 @@ onMounted(() => {
       isListening.value = false
     }
   } else {
+    router.push('/vosk')
     console.warn('Speech recognition not supported in this browser')
   }
 })
@@ -60,7 +65,7 @@ const sendTranscript = async () => {
   if (!transcript.value.trim()) return
 
   try {
-    const response = await fetch('http://localhost:8000/api/conversation', {
+    const response = await fetch(`${apiUrl}/api/v1/conversation`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ transcript: transcript.value })
@@ -97,7 +102,8 @@ const sendTranscript = async () => {
       </v-col>
       <v-col cols="4">
         <v-card class="elevation-4">
-          <ChatBubble v-for="(msg, index) in messages" :key="index" :content="msg.content" :primary="msg.role == 'NURSE'" />
+          
+          <ChatBubble v-for="(msg, index) in messages" :key="index" :content="msg.content" :primary="['NURSE', 'assistant'].includes(msg.role)" />
         </v-card>
       </v-col>
     </v-row>

@@ -27,14 +27,17 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, inject } from 'vue'
 import ChatBubble from '@/components/ChatBubble.vue'
+
+const apiUrl = inject('$apiUrl')
 
 const transcript = ref('')
 const isRecording = ref(false)
 const mediaRecorder = ref(null)
 const audioChunks = ref([])
 const messages = ref([])
+
 
 const startRecording = async () => {
   try {
@@ -52,7 +55,7 @@ const startRecording = async () => {
       formData.append('audio', audioBlob)
 
       try {
-        const response = await fetch('http://localhost:8000/api/v1/transcribe', {
+        const response = await fetch(`${apiUrl}/api/v1/transcribe`, {
           method: 'POST',
           body: formData
         })
@@ -81,7 +84,7 @@ const sendTranscript = async () => {
   if (!transcript.value.trim()) return
 
   try {
-    const response = await fetch('http://localhost:8000/api/conversation', {
+    const response = await fetch(`${apiUrl}/api/v1/conversation`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ transcript: transcript.value })
