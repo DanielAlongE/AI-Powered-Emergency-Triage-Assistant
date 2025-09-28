@@ -188,7 +188,17 @@ const handleKeyDown = (e) => {
         e.preventDefault();
 
         // Insert a line break element (<br>) instead.
-        document.execCommand('insertHTML', false, '<br><br>');
+        const selection = window.getSelection();
+        const range = selection.getRangeAt(0);
+        const br1 = document.createElement('br');
+        const br2 = document.createElement('br');
+        range.deleteContents();
+        range.insertNode(br1);
+        range.insertNode(br2);
+        range.setStartAfter(br2);
+        range.setEndAfter(br2);
+        selection.removeAllRanges();
+        selection.addRange(range);
 
         // You might need to focus the element again to position the cursor.
         // editableDiv.value.focus();
