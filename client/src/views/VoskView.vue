@@ -12,7 +12,7 @@
             >
               {{ isRecording ? 'Stop Recording' : 'Start Recording' }}
             </v-btn>
-            <v-textarea v-model="transcript" label="Transcript" rows="4"></v-textarea>
+            <HighlightTextarea  v-model="transcript" label="Transcript" min-height="500px" :words-to-highlight="['ache', 'breath', 'bleed']"></HighlightTextarea>
             <v-btn @click="sendTranscript" color="success" class="mt-2">Send Transcript</v-btn>
           </v-card-text>
         </v-card>
@@ -27,8 +27,9 @@
 </template>
 
 <script setup>
-import { ref, inject } from 'vue'
+import { ref, inject, watch } from 'vue'
 import ChatBubble from '@/components/ChatBubble.vue'
+import HighlightTextarea from '@/components/HighlightTextarea.vue'
 
 const apiUrl = inject('$apiUrl')
 
@@ -38,6 +39,8 @@ const mediaRecorder = ref(null)
 const audioChunks = ref([])
 const messages = ref([])
 
+
+watch(transcript, (x) => console.log(x))
 
 const startRecording = async () => {
   try {
@@ -60,7 +63,7 @@ const startRecording = async () => {
           body: formData
         })
         const data = await response.json()
-        transcript.value = data.transcript
+        transcript.value += data.transcript
       } catch (error) {
         console.error('Error transcribing:', error)
       }
