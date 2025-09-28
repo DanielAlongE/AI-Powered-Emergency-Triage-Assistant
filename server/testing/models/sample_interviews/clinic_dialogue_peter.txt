@@ -1,0 +1,44 @@
+**Setting:** A triage desk in a moderately busy urgent care clinic. The general waiting room noise is audible.
+
+**Characters:**
+
+* **Nurse Julianne:** A friendly and methodical triage nurse.
+* **Peter:** A man in his early 20s, sniffling, but otherwise looking well.
+
+---
+
+**(The scene opens with Peter approaching the triage window.)**
+
+**Nurse Julianne:** "Good afternoon. How can I help you?"
+
+**Peter:** (Slightly congested voice) "Hi. I think I have a cold. I was hoping to get a sick note for work and maybe some medicine."
+
+**Nurse Julianne:** "Of course, let's get you checked in. How long have you been feeling this way?"
+
+**Peter:** "It started about two days ago. First, it was a scratchy throat, and today I woke up with a runny nose and sneezing."
+
+**Nurse Julianne:** (Typing on her computer) "Okay. And a fever? Have you checked your temperature?"
+
+**Peter:** "No, I don't feel feverish. Maybe some body aches, but nothing serious."
+
+**Nurse Julianne:** (Places a blood pressure cuff on his arm and an ear thermometer in his ear) "Alright. Any other symptoms? Shortness of breath, chest pain, a severe headache?"
+
+**Peter:** "No, none of that. Really just my nose and throat. And a bit of a dry cough."
+
+**Nurse Julianne:** "Do you have any chronic illnesses, like asthma or diabetes? Any medication allergies?"
+
+**Peter:** "No, I'm healthy. And no allergies that I know of."
+
+**Nurse Julianne:** (Looks at the vital signs readings) "Okay, Peter. Your blood pressure, oxygen, and temperature are all normal. From what you're describing, it sounds like a typical upper respiratory infection, a common cold."
+
+**(She hands him a green wristband.)**
+
+**Nurse Julianne:** "I'm going to give you this green wristband. This means your condition is not an emergency, and you'll be seen in the order of arrival, after the more urgent cases."
+
+**Peter:** "No problem. Do you have an idea of the wait time?"
+
+**Nurse Julianne:** "The wait for your classification is currently about one to two hours. You can have a seat in the main waiting area and watch for your name on the monitor. If you start to feel worse—like you develop a high fever or shortness of breath—please come back and let me know immediately."
+
+**Peter:** "Sounds good. Thank you very much."
+
+**(Peter takes his documents and heads to the main waiting area.)**

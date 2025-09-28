@@ -1,0 +1,48 @@
+**Characters:**
+
+  * **Nurse Anna:** Calm and professional.
+  * **Mr. Carlos:** Anxious and in pain.
+
+**(Scene begins with the background sound of a moderately busy clinic.)**
+
+**Nurse Anna:** "Good morning, sir. Please have a seat. I'm Anna, the triage nurse. What brings you in today?"
+
+**Mr. Carlos:** (Slightly breathless) "Good morning. I... I'm having chest pain. A very strong pain."
+
+**Nurse Anna:** "Okay. Chest pain. When exactly did this pain start?"
+
+**Mr. Carlos:** "About an hour ago. I was sweeping the backyard at home, and suddenly this pressure came on."
+
+**Nurse Anna:** "So it's a pressure? Not a stabbing or a burning sensation? Describe it for me."
+
+**Mr. Carlos:** "Yes, a pressure. It feels like an elephant is sitting on my chest. It's horrible."
+
+**Nurse Anna:** "Okay. And this pain, does it spread anywhere else? To your back, your neck, your arm?"
+
+**Mr. Carlos:** "Yes, I feel it going up to my jaw and a little in my left arm. My arm is tingling."
+
+**Nurse Anna:** "On a scale of 0 to 10, with 10 being the worst pain you've ever felt, what number would you give this pain right now?"
+
+**Mr. Carlos:** (Wincing slightly) "An 8. Definitely an 8."
+
+**Nurse Anna:** "Besides the pain, have you felt anything else? Shortness of breath, dizziness, nausea?"
+
+**Mr. Carlos:** "I am short of breath. And I'm sweating a lot, a cold sweat. I feel a little nauseous, too."
+
+**Nurse Anna:** "I see. Do you have any health problems? High blood pressure, diabetes, cholesterol?"
+
+**Mr. Carlos:** "I have high blood pressure. I take a medication for it, Losartan."
+
+**Nurse Anna:** "Did you take your medication today?"
+
+**Mr. Carlos:** "Yes, I took it this morning, like always."
+
+**Nurse Anna:** "Are you allergic to any medications? Aspirin, for example?"
+
+**Mr. Carlos:** "Not that I know of."
+
+**Nurse Anna:** (Tone becomes slightly more urgent but remains calm) "Okay, Mr. Carlos. Stay calm. Based on your description and your vital signs, your situation is an emergency. I'm going to put a red wristband on you. This means you have the highest priority."
+
+**Nurse Anna:** "Please, come with me. We are taking you directly to the emergency room for an EKG, and the doctor will see you immediately. Don't worry, you're in the right place."
+
+**Mr. Carlos:** (Voice trembling with fear and relief) "Thank you... thank you so much."
