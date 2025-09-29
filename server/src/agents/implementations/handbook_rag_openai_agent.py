@@ -1,5 +1,5 @@
 """
-HandbookRagOpenAiAgent - Replicates the reasoning logic from project/app/services/reasoner.py
+Emergency triage agent using RAG + OpenAI for ESI assessment
 """
 
 import asyncio
@@ -52,8 +52,6 @@ class HandbookRagOpenAiAgent(BaseTriageAgent):
     """
     Emergency triage agent that uses RAG, red-flag detection, and OpenAI
     to assess conversations and provide ESI recommendations.
-
-    This replicates the exact logic from project/app/services/reasoner.py
     """
 
     def __init__(self, name: str, config: Dict[str, Any] = None):
@@ -71,10 +69,9 @@ class HandbookRagOpenAiAgent(BaseTriageAgent):
         self._red_flag_detector = RedFlagDetector(settings.red_flag_lexicon_path)
         self._max_questions = settings.max_follow_up_questions
 
-        # Agent-specific configuration (improved temperature for better calibration)
-        self.temperature = config.get('temperature', 0.2)  # Lower for more consistent reasoning
+        # Agent-specific configuration
+        self.temperature = config.get('temperature', 0.2)
         self.max_questions = config.get('max_questions', 3)
-        # Use higher-capacity model for better medical reasoning (default to gpt-4o for accuracy)
         self.model_override = config.get('model_override', 'gpt-4o')
 
         logger.info("handbook_rag_openai_agent_initialized",
@@ -107,7 +104,7 @@ class HandbookRagOpenAiAgent(BaseTriageAgent):
 
     async def _generate_assessment(self, conversation: MedicalConversation) -> ESIAssessment:
         """
-        Generate triage assessment - replicates ReasoningEngine.generate()
+        Generate triage assessment
         """
         # Extract conversation text
         combined_text = conversation.get_full_text()
@@ -120,7 +117,7 @@ class HandbookRagOpenAiAgent(BaseTriageAgent):
         rag_docs = self._rag.query(combined_text or "triage assessment guidance")
         rag_context = "\n\n".join(f"- {doc.page_content}" for doc in rag_docs)
 
-        # Build prompt (same structure as reasoner.py)
+        # Build prompt
         prompt = self._build_prompt(combined_text, red_flag_terms, rag_context)
 
         logger.info(
@@ -146,7 +143,7 @@ class HandbookRagOpenAiAgent(BaseTriageAgent):
 
     def _build_prompt(self, transcript: str, red_flag_terms: List[str], rag_context: str) -> str:
         """
-        Build prompt - enhanced with structured ESI reasoning
+        Build prompt
         """
         instructions = [
             "You are an emergency department triage copilot assisting a nurse.",
@@ -196,7 +193,7 @@ class HandbookRagOpenAiAgent(BaseTriageAgent):
 
     def _to_esi_assessment(self, llm_response: dict, matches: List[RedFlag]) -> ESIAssessment:
         """
-        Convert LLM response to ESIAssessment - same logic as reasoner.py
+        Convert LLM response to ESIAssessment
         """
         # Handle confidence normalization
         confidence = None

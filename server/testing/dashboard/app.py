@@ -27,13 +27,7 @@ from utils.visualization import VisualizationHelper
 from agents.implementations.random_agent import RandomTriageAgent
 from agents.implementations.rule_based_agent import RuleBasedTriageAgent
 
-# LLM in Progress, not ready to use yet.
-# try:
-#     from agents.implementations.llm_agent import LLMTriageAgent
-#     from agents.implementations.hybrid_agent import HybridTriageAgent
-#     LLM_AVAILABLE = True
-# except ImportError:
-LLM_AVAILABLE = False
+# LLM and Hybrid agents removed
 
 # Import handbook RAG agents
 try:
@@ -47,6 +41,18 @@ try:
     HANDBOOK_RAG_OLLAMA_AVAILABLE = True
 except ImportError:
     HANDBOOK_RAG_OLLAMA_AVAILABLE = False
+
+try:
+    from agents.implementations.schema_first_ollama_agent import SchemaFirstOllamaAgent
+    SCHEMA_FIRST_OLLAMA_AVAILABLE = True
+except ImportError:
+    SCHEMA_FIRST_OLLAMA_AVAILABLE = False
+
+try:
+    from agents.implementations.multi_step_agent import MultiStepESIAgent
+    MULTI_STEP_AVAILABLE = True
+except ImportError:
+    MULTI_STEP_AVAILABLE = False
 
 
 # Configure Streamlit page
@@ -112,8 +118,6 @@ def load_test_data(max_workers: int = 1):
         st.error(f"Failed to load test data: {e}")
         return None, None
 
-
-@st.cache_data(ttl=60)  # Cache for 1 minute
 def run_agent_test(agent_config: Dict[str, Any], limit: int = 50, max_workers: int = 1, use_source_case_text: bool = False):
     """Run agent test with caching.
 
@@ -136,27 +140,31 @@ def run_agent_test(agent_config: Dict[str, Any], limit: int = 50, max_workers: i
             agent = RandomTriageAgent(agent_name, agent_config.get('params', {}))
         elif agent_type == 'rule_based':
             agent = RuleBasedTriageAgent(agent_name, agent_config.get('params', {}))
-        elif agent_type == 'llm' and LLM_AVAILABLE:
-            agent = LLMTriageAgent(agent_name, agent_config.get('params', {}))
-        elif agent_type == 'hybrid' and LLM_AVAILABLE:
-            agent = HybridTriageAgent(agent_name, agent_config.get('params', {}))
         elif agent_type == 'handbook_rag_openai' and HANDBOOK_RAG_OPENAI_AVAILABLE:
-            # Set up environment for HandbookRagOpenAiAgent
+            # Create HandbookRagOpenAiAgent
             params = agent_config.get('params', {})
-            if 'openai_api_key' in params:
-                import os
-                os.environ['OPENAI_API_KEY'] = params['openai_api_key']
             agent = HandbookRagOpenAiAgent(agent_name, params)
         elif agent_type == 'handbook_rag_ollama' and HANDBOOK_RAG_OLLAMA_AVAILABLE:
             # Create HandbookRagOllamaAgent with Modal support
             params = agent_config.get('params', {})
 
             # Set environment variables for Modal if provided
-            if 'modal_endpoint' in params:
-                import os
-                os.environ['MODAL_ENDPOINT'] = params['modal_endpoint']
 
             agent = HandbookRagOllamaAgent(agent_name, params)
+        elif agent_type == 'schema_first_ollama' and SCHEMA_FIRST_OLLAMA_AVAILABLE:
+            # Create SchemaFirstOllamaAgent
+            params = agent_config.get('params', {})
+
+            # Set environment variables for Modal if provided
+
+            agent = SchemaFirstOllamaAgent(agent_name, params)
+        elif agent_type == 'multi_step' and MULTI_STEP_AVAILABLE:
+            # Create MultiStepESIAgent
+            params = agent_config.get('params', {})
+
+            # Set environment variables for Modal if provided
+
+            agent = MultiStepESIAgent(agent_name, params)
         else:
             return None
 
@@ -320,12 +328,14 @@ def main():
         # Agent selection
         st.subheader("🤖 Select Agent")
         agent_options = ['random', 'rule_based']
-        if LLM_AVAILABLE:
-            agent_options.extend(['llm', 'hybrid'])
         if HANDBOOK_RAG_OPENAI_AVAILABLE:
             agent_options.append('handbook_rag_openai')
         if HANDBOOK_RAG_OLLAMA_AVAILABLE:
             agent_options.append('handbook_rag_ollama')
+        if SCHEMA_FIRST_OLLAMA_AVAILABLE:
+            agent_options.append('schema_first_ollama')
+        if MULTI_STEP_AVAILABLE:
+            agent_options.append('multi_step')
 
         agent_type = st.selectbox(
             "Agent Type",
@@ -333,10 +343,10 @@ def main():
             format_func=lambda x: {
                 'random': 'Random Agent',
                 'rule_based': 'Rule-Based Agent',
-                'llm': 'LLM Agent',
-                'hybrid': 'Hybrid Agent',
                 'handbook_rag_openai': 'Handbook RAG + OpenAI Agent',
-                'handbook_rag_ollama': 'Handbook RAG + Ollama Agent'
+                'handbook_rag_ollama': 'Handbook RAG + Ollama Agent',
+                'schema_first_ollama': 'Schema First Ollama Agent',
+                'multi_step': 'Multi-Step ESI Agent'
             }.get(x, x)
         )
 
@@ -360,46 +370,22 @@ def main():
                 w5 = st.slider("ESI 5", 0.0, 1.0, 0.2, 0.01)
                 params['weights'] = [w1, w2, w3, w4, w5]
 
-        elif agent_type == 'llm' and LLM_AVAILABLE:
-            st.subheader("LLM Agent Parameters")
-            params['model'] = st.selectbox("Model", ['llama3.2', 'llama3.1', 'llama2'])
-            params['temperature'] = st.slider("Temperature", 0.0, 1.0, 0.3, 0.01)
-
-        elif agent_type == 'hybrid' and LLM_AVAILABLE:
-            st.subheader("Hybrid Agent Parameters")
-            params['rule_weight'] = st.slider("Rule Weight", 0.0, 1.0, 0.3, 0.01)
-            params['llm_weight'] = st.slider("LLM Weight", 0.0, 1.0, 0.7, 0.01)
 
         elif agent_type == 'handbook_rag_openai' and HANDBOOK_RAG_OPENAI_AVAILABLE:
             st.subheader("Handbook RAG + OpenAI Parameters")
 
-            # OpenAI Configuration
-            st.write("**OpenAI Configuration:**")
-            openai_key = st.text_input(
-                "OpenAI API Key",
-                type="password",
-                placeholder="sk-...",
-                help="Enter your OpenAI API key for this session"
-            )
-            if openai_key:
-                params['openai_api_key'] = openai_key
-
+            # Model Configuration
             params['model'] = st.selectbox(
                 "OpenAI Model",
                 ['gpt-4o-mini', 'gpt-3.5-turbo', 'gpt-4o', 'gpt-4.1-mini', 'gpt-5-mini', 'gpt-5'],
                 index=0
             )
-            params['temperature'] = st.slider("Temperature", 0.0, 1.0, 0.1, 0.01)
-            params['max_questions'] = st.slider("Max Follow-up Questions", 1, 5, 3, 1)
+            params['temperature'] = st.slider("Temperature", 0.0, 1.0, 0.1, 0.1)
+            params['max_questions'] = st.slider("Max Follow-up Questions", 1, 5, 1, 1)
 
             # Status indicators
-            if openai_key:
-                st.success("✅ OpenAI API Key provided")
-            else:
-                st.warning("⚠️ OpenAI API Key required for this agent")
-
-            st.info("💡 This agent uses RAG (retrieval-augmented generation) with ESI protocol documents and red-flag detection for enhanced triage assessment.")
-
+            st.info("🔑 OpenAI API Key must be configured in environment variables")
+            
         elif agent_type == 'handbook_rag_ollama' and HANDBOOK_RAG_OLLAMA_AVAILABLE:
             st.subheader("Handbook RAG + Ollama Parameters")
 
@@ -408,15 +394,14 @@ def main():
 
             inference_mode = st.selectbox(
                 "Inference Location",
-                options=["auto", "local", "modal", "cloud"],
-                index=2,
+                options=["local", "modal", "cloud"],
+                index=0,
                 format_func=lambda x: {
-                    "auto": "🔄 Auto (Try Modal, fallback to Local)",
                     "local": "🖥️ Local CPU/GPU",
                     "modal": "☁️ Modal (Remote GPU)",
                     "cloud": "🌐 Ollama Cloud (Hosted Inference)"
                 }.get(x, x),
-                help="Choose where to run inference. Cloud provides access to massive models via Ollama's hosted service."
+                help="Choose where to run inference."
             )
             params['inference_mode'] = inference_mode
 
@@ -432,29 +417,6 @@ def main():
                 if ollama_host:
                     params['ollama_host'] = ollama_host
 
-            if inference_mode in ["modal", "auto"]:
-                st.write("**Modal Settings:**")
-                modal_endpoint = st.text_input(
-                    "Modal Endpoint",
-                    value="",
-                    placeholder="https://your-app--ollama-serve.modal.run",
-                    help="Your deployed Modal endpoint URL. Leave empty to use environment variable."
-                )
-                if modal_endpoint:
-                    params['modal_endpoint'] = modal_endpoint
-
-                modal_gpu = st.selectbox(
-                    "GPU Type",
-                    options=["t4", "a10g", "a100"],
-                    index=0,
-                    format_func=lambda x: {
-                        "t4": "T4 (~$0.59/hr, good balance)",
-                        "a10g": "A10G (~$1.32/hr, faster)",
-                        "a100": "A100 (~$4/hr, fastest)"
-                    }.get(x, x),
-                    help="GPU type for Modal inference"
-                )
-                params['modal_gpu_type'] = modal_gpu
 
             # Model selection with predefined options and custom input
             st.write("**Model Selection:**")
@@ -520,96 +482,186 @@ def main():
             if inference_mode == "local":
                 st.info("🖥️ This agent uses local Ollama models for inference. Ensure Ollama is running and the model is installed.")
             elif inference_mode == "modal":
-                st.info("☁️ This agent uses Modal for remote GPU inference. Ensure your Modal endpoint is deployed and accessible.")
+                st.info("☁️ This agent uses Modal for remote GPU inference. Modal endpoint configured in environment.")
             elif inference_mode == "cloud":
                 st.info("🌐 This agent uses Ollama Cloud for hosted inference. Requires authentication: `ollama signin`")
             else:  # auto
                 st.info("🔄 This agent tries Modal first, then falls back to local Ollama if needed.")
 
-            # Connection checks
-            local_connected = False
-            modal_connected = False
-
-            # Check local connection if applicable
-            if inference_mode in ["local", "auto"] and 'ollama_host' in locals():
-                try:
-                    import ollama
-                    ollama_client = ollama.Client(host=ollama_host)
-                    models_response = ollama_client.list()
-
-                    # Extract model names from Ollama ListResponse
-                    available_models = []
-                    if hasattr(models_response, 'models'):
-                        for model_info in models_response.models:
-                            if hasattr(model_info, 'model'):
-                                available_models.append(model_info.model)
-
-                    if available_models:
-                        st.success(f"✅ Local Ollama connected. Models: {', '.join(available_models[:3])}{'...' if len(available_models) > 3 else ''}")
-                        local_connected = True
-
-                        # Check model availability
-                        model_found = params['model'] in available_models
-                        if not model_found:
-                            # Fuzzy matching
-                            model_base = params['model'].split(':')[0]
-                            for available_model in available_models:
-                                if available_model.split(':')[0] == model_base:
-                                    model_found = True
-                                    break
-
-                        if model_found:
-                            st.success(f"✅ Model '{params['model']}' available locally")
-                        else:
-                            st.warning(f"⚠️ Model '{params['model']}' not found locally")
-                    else:
-                        st.warning("⚠️ Local Ollama has no models")
-
-                except Exception as e:
-                    st.error(f"❌ Local Ollama connection failed: {str(e)}")
-
-            # Check Modal connection if applicable
-            if inference_mode in ["modal", "auto"] and modal_endpoint:
-                try:
-                    import httpx
-                    import asyncio
-
-                    async def check_modal():
-                        async with httpx.AsyncClient(timeout=10) as client:
-                            response = await client.get(f"{modal_endpoint}/health")
-                            return response.json()
-
-                    # Run async check
-                    try:
-                        result = asyncio.run(check_modal())
-                        st.success(f"✅ Modal endpoint connected: {result.get('status', 'healthy')}")
-                        modal_connected = True
-                    except Exception:
-                        st.error("❌ Modal endpoint not accessible")
-
-                except Exception as e:
-                    st.error(f"❌ Modal connection check failed: {str(e)}")
-
-            elif inference_mode in ["modal", "auto"] and not modal_endpoint:
-                st.warning("⚠️ Modal endpoint URL required for Modal inference")
-
-            # Overall status
-            if inference_mode == "local" and local_connected:
-                st.success("🟢 Ready for local inference")
-            elif inference_mode == "modal" and modal_connected:
-                st.success("🟢 Ready for Modal inference")
-            elif inference_mode == "cloud":
-                st.success("🟢 Ready for cloud inference (requires ollama signin)")
-            elif inference_mode == "auto" and (local_connected or modal_connected):
-                ready_modes = []
-                if modal_connected: ready_modes.append("Modal")
-                if local_connected: ready_modes.append("Local")
-                st.success(f"🟢 Ready for inference ({' + '.join(ready_modes)} available)")
-            elif inference_mode != "cloud":
-                st.error("🔴 No inference backends available")
 
             st.info("💡 This agent uses RAG with ESI protocol documents and red-flag detection for enhanced triage assessment.")
 
+        elif agent_type == 'schema_first_ollama' and SCHEMA_FIRST_OLLAMA_AVAILABLE:
+            st.subheader("Schema First Ollama Parameters")
+
+            # Inference Configuration
+            st.write("**Inference Configuration:**")
+
+            inference_mode = st.selectbox(
+                "Inference Location",
+                options=["auto", "local", "modal", "cloud"],
+                index=2,
+                format_func=lambda x: {
+                    "auto": "🔄 Auto (Try Modal, fallback to Local)",
+                    "local": "🖥️ Local CPU/GPU",
+                    "modal": "☁️ Modal (Remote GPU)",
+                    "cloud": "🌐 Ollama Cloud (Hosted Inference)"
+                }.get(x, x),
+                help="Choose where to run inference. This agent uses structured extraction with deterministic ESI algorithm."
+            )
+            params['inference_mode'] = inference_mode
+
+            # Show relevant configuration based on mode
+            if inference_mode in ["local", "auto"]:
+                st.write("**Local Ollama Settings:**")
+                ollama_host = st.text_input(
+                    "Ollama Host",
+                    value="http://localhost:11434",
+                    placeholder="http://localhost:11434",
+                    help="Local Ollama server host URL"
+                )
+                if ollama_host:
+                    params['ollama_host'] = ollama_host
+
+            # Model Configuration
+            st.write("**Model Configuration:**")
+
+            # Cloud models list
+            cloud_models = [
+                'gpt-oss:20b-cloud', 'gpt-oss:120b-cloud',
+                'qwen3-coder:480b-cloud', 'deepseek-v3.1:671b-cloud'
+            ]
+
+            # Local models list
+            local_models = [
+                'gpt-oss:20b', 'gemma2:9b', 'gemma2:2b', 'llama3.2:3b', 'llama3.1:8b'
+            ]
+
+            if inference_mode == "cloud":
+                model_options = cloud_models
+                default_model = 'gpt-oss:20b-cloud'
+            else:
+                model_options = local_models + cloud_models
+                default_model = 'gpt-oss:20b'
+
+            model_override = st.selectbox(
+                "Model",
+                options=model_options,
+                index=0 if default_model in model_options else 0,
+                help="Model for structured extraction (default: gpt-oss-20b for local, gpt-oss:20b-cloud for cloud)"
+            )
+            params['model_override'] = model_override
+
+            temperature = st.slider(
+                "Temperature",
+                min_value=0.0,
+                max_value=0.5,
+                value=0.1,
+                step=0.01,
+                help="Low temperature for structured extraction (recommended: 0.1)"
+            )
+            params['temperature'] = temperature
+
+            max_questions = st.number_input(
+                "Max Follow-up Questions",
+                min_value=0,
+                max_value=10,
+                value=3,
+                help="Maximum number of follow-up questions to generate"
+            )
+            params['max_questions'] = max_questions
+
+            # Connection status (only for cloud mode)
+            if inference_mode == "cloud":
+                st.info("🌐 Requires authentication: `ollama signin`")
+            elif inference_mode == "local":
+                st.info("🖥️ Ensure Ollama is running and the model is installed.")
+            elif inference_mode == "modal":
+                st.info("☁️ Ensure Modal endpoint configured in environment.")
+            
+        elif agent_type == 'multi_step' and MULTI_STEP_AVAILABLE:
+            st.subheader("Multi-Step ESI Agent Parameters")
+
+            # Inference Configuration
+            st.write("**Inference Configuration:**")
+
+            inference_mode = st.selectbox(
+                "Inference Location",
+                options=["local", "modal", "cloud"],
+                index=2,
+                format_func=lambda x: {
+                    "local": "🖥️ Local CPU/GPU",
+                    "modal": "☁️ Modal (Remote GPU)",
+                    "cloud": "🌐 Ollama Cloud (Hosted Inference)"
+                }.get(x, x),
+                help="Choose where to run inference. This agent uses multi-step reasoning through ESI decision points.",
+                key="multi_step_inference_mode"
+            )
+            params['inference_mode'] = inference_mode
+
+            # Show relevant configuration based on mode
+            if inference_mode in ["local"]:
+                st.write("**Local Ollama Settings:**")
+                ollama_host = st.text_input(
+                    "Ollama Host",
+                    value="http://localhost:11434",
+                    placeholder="http://localhost:11434",
+                    help="Local Ollama server host URL",
+                    key="multi_step_ollama_host"
+                )
+                if ollama_host:
+                    params['ollama_host'] = ollama_host
+
+
+            # Model Configuration
+            st.write("**Model Configuration:**")
+
+            # Cloud models list
+            cloud_models = [
+                'gpt-oss:20b-cloud', 'gpt-oss:120b-cloud',
+                'qwen3-coder:480b-cloud', 'deepseek-v3.1:671b-cloud'
+            ]
+
+            # Local models list
+            local_models = [
+                'gpt-oss:20b', 'gemma2:9b', 'gemma2:2b', 'llama3.2:3b', 'llama3.1:8b'
+            ]
+
+            if inference_mode == "cloud":
+                model_options = cloud_models
+                default_model = 'gpt-oss:20b-cloud'
+            else:
+                model_options = local_models + cloud_models
+                default_model = 'gpt-oss:20b'
+
+            model_override = st.selectbox(
+                "Model",
+                options=model_options,
+                index=0 if default_model in model_options else 0,
+                help="Model for multi-step reasoning (default: gpt-oss-20b for local, gpt-oss:20b-cloud for cloud)",
+                key="multi_step_model"
+            )
+            params['model_override'] = model_override
+
+            temperature = st.slider(
+                "Temperature",
+                min_value=0.0,
+                max_value=0.5,
+                value=0.1,
+                step=0.01,
+                help="Temperature for decision-making (recommended: 0.1)",
+                key="multi_step_temperature"
+            )
+            params['temperature'] = temperature
+
+            # Connection status indicators (similar to schema_first_ollama)
+            if inference_mode == "local":
+                st.info("🖥️ Ensure Ollama is running and the model is installed.")
+            elif inference_mode == "modal":
+                st.info("☁️ Ensure Modal endpoint is configured in the environment.")
+            elif inference_mode == "cloud":
+                st.info("🌐 Requires authentication: `ollama signin`")
+            
         # Test parameters
         st.divider()
         st.subheader("🧪 Test Parameters")
@@ -747,32 +799,7 @@ def main():
         3. Click "Run Test" to evaluate performance
         4. Explore the interactive results
 
-        ### Available Agents
-        - **Random Agent**: Baseline for comparison
-        - **Rule-Based Agent**: Basic keyword and pattern matching
         """)
-
-        if HANDBOOK_RAG_OPENAI_AVAILABLE:
-            st.markdown("""
-        - **Handbook RAG + OpenAI Agent**: Advanced AI-powered assessment using OpenAI with RAG and red-flag detection
-            """)
-
-        if HANDBOOK_RAG_OLLAMA_AVAILABLE:
-            st.markdown("""
-        - **Handbook RAG + Ollama Agent**: Advanced AI-powered assessment using local Ollama models with RAG and red-flag detection
-            """)
-
-        if LLM_AVAILABLE:
-            st.markdown("""
-        - **LLM Agent**: AI-powered assessment using Ollama
-        - **Hybrid Agent**: Combines rule-based and LLM approaches
-            """)
-        else:
-            st.warning("LLM agents not available")
-
-        st.markdown("---")
-        st.info("**Tip**: Start with the Random Agent to establish a baseline, then try the Rule-Based Agent for comparison.")
-
 
 if __name__ == "__main__":
     main()

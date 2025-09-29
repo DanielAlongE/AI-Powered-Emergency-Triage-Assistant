@@ -86,13 +86,14 @@ class TestDataLoader:
                     )
                     conversation_turns.append(turn)
 
-        # Generate case ID
-        case_id = f"case_{case_index}"
-        if 'number' in case_data:
-            case_id = f"case_{case_data['number']}"
-
-        # Extract case type
+        # Extract case type first
         case_type = case_data.get('type', 'Unknown')
+
+        # Generate descriptive case ID combining type and number
+        if 'number' in case_data:
+            case_id = f"{case_type}_{case_data['number']}"
+        else:
+            case_id = f"{case_type}_{case_index}"
 
         # Extract source case text from meta field
         source_case_text = None

@@ -1,5 +1,10 @@
 """
-HandbookRagOllamaAgent - Uses Ollama for local LLM inference instead of OpenAI
+Similar to HandbookRagOpenAiAgent but using Ollama for local LLM inference instead of OpenAI.
+
+Differences from HandbookRagOpenAiAgent:
+    - Uses Ollama embeddings (nomic-embed-text) instead of OpenAI embeddings
+    - Retrieves from ChromaDB instance with Ollama embeddings
+    - Uses Ollama LLM for inference instead of OpenAI
 """
 
 import asyncio
@@ -54,11 +59,6 @@ class HandbookRagOllamaAgent(BaseTriageAgent):
     to assess conversations and provide ESI recommendations.
 
     Uses local Ollama models for both LLM inference and embeddings.
-
-    Key differences from HandbookRagOpenAiAgent:
-    - Uses Ollama embeddings (nomic-embed-text) instead of OpenAI embeddings
-    - Retrieves from ChromaDB instance with Ollama embeddings
-    - Uses Ollama LLM for inference instead of OpenAI
     """
 
     def __init__(self, name: str, config: Dict[str, Any] = None):
@@ -70,18 +70,17 @@ class HandbookRagOllamaAgent(BaseTriageAgent):
         if configure_logging:
             configure_logging(settings.log_level)
 
-        # Initialize components (uses Ollama embeddings)
+        # Initialize components
         ollama_host = config.get('ollama_host') if config else None
         inference_mode = config.get('inference_mode') if config else None
         self._gateway = get_ollama_gateway(host=ollama_host, inference_mode=inference_mode)
-        self._rag = get_protocol_rag_ollama()  # Uses Ollama embeddings instead of OpenAI
+        self._rag = get_protocol_rag_ollama()
         self._red_flag_detector = RedFlagDetector(settings.red_flag_lexicon_path)
         self._max_questions = settings.max_follow_up_questions
 
-        # Agent-specific configuration
-        self.temperature = config.get('temperature', 0.3)  # Higher for Ollama models
+        # Agent specific configuration
+        self.temperature = config.get('temperature', 0.3)
         self.max_questions = config.get('max_questions', 3)
-        # Default to gemma2:2b but allow override
         self.model_override = config.get('model_override', config.get('model', 'gemma2:2b'))
 
         logger.info("handbook_rag_ollama_agent_initialized",
@@ -128,7 +127,7 @@ class HandbookRagOllamaAgent(BaseTriageAgent):
         rag_docs = self._rag.query(combined_text or "triage assessment guidance")
         rag_context = "\n\n".join(f"- {doc.page_content}" for doc in rag_docs)
 
-        # Build prompt (same structure as OpenAI version)
+        # Build prompt
         prompt = self._build_prompt(combined_text, red_flag_terms, rag_context)
 
         logger.info(
@@ -155,7 +154,7 @@ class HandbookRagOllamaAgent(BaseTriageAgent):
 
     def _build_prompt(self, transcript: str, red_flag_terms: List[str], rag_context: str) -> str:
         """
-        Build prompt - enhanced with structured ESI reasoning
+        Build prompt
         """
         instructions = [
             "You are an emergency department triage copilot assisting a nurse.",
@@ -211,7 +210,7 @@ class HandbookRagOllamaAgent(BaseTriageAgent):
 
     def _to_esi_assessment(self, llm_response: dict, matches: List[RedFlag]) -> ESIAssessment:
         """
-        Convert LLM response to ESIAssessment - same logic as OpenAI version
+        Convert LLM response to ESIAssessment
         """
         # Handle confidence normalization
         confidence = None
