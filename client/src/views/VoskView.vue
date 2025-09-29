@@ -27,7 +27,7 @@
 </template>
 
 <script setup>
-import { ref, inject, watch, onUnmounted } from 'vue'
+import { ref, inject, markRaw, onUnmounted } from 'vue'
 import ChatBubble from '@/components/ChatBubble.vue'
 import HighlightTextarea from '@/components/HighlightTextarea.vue'
 
@@ -36,51 +36,68 @@ const apiUrl = inject('$apiUrl')
 const transcript = ref('')
 const isRecording = ref(false)
 const mediaRecorder = ref(null)
-const audioChunks = ref([])
+// const audioChunks = ref([])
 const messages = ref([])
-const recordingTimeout = ref(null)
+const audioContext = ref(null)
+const analyser = ref(null)
+const silenceStart = ref(null)
+const silenceThreshold = 0.01 // Adjust this threshold as needed
+
+let audioChunks = markRaw([])
 
 
-watch(transcript, (x) => console.log(x))
+// console.log({audioChunks, v: audioChunks})
 
-const setSilenceTimeout = () => {
-    recordingTimeout.value = setTimeout(() => {
 
-      console.log('transcribing...')
-      console.log('audioChunks', audioChunks.value?.length)
-    }, 2000)
-}
-
-const clearSilenceTimeout = () => {
-  if (recordingTimeout.value) {
-    clearTimeout(recordingTimeout.value)
-    recordingTimeout.value = null
+// Cleanup audio context when component is unmounted
+onUnmounted(() => {
+  if (audioContext.value) {
+    audioContext.value.close()
   }
-}
-
-const resetSilenceTimeout = () => {
-  console.log('resetSilenceTimeout')
-  clearSilenceTimeout()
-  setSilenceTimeout()
-}
-
-// Clear timeout when component is unmounted
-onUnmounted(clearSilenceTimeout)
+})
 
 
 
-const startRecording = async () => {
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-    mediaRecorder.value = new MediaRecorder(stream)
-    audioChunks.value = []
+const checkSilence = () => {
+  if (!analyser.value || !isRecording.value) return
 
-    mediaRecorder.value.ondataavailable = (event) => {
-      audioChunks.value.push(event.data)
+  const bufferLength = analyser.value.fftSize
+  const dataArray = new Float32Array(bufferLength)
+  analyser.value.getFloatTimeDomainData(dataArray)
+
+  // Calculate RMS (Root Mean Square) from time domain data
+  let sum = 0
+  for (let i = 0; i < bufferLength; i++) {
+    sum += dataArray[i] * dataArray[i]
+  }
+  const rms = Math.sqrt(sum / bufferLength)
+
+  if (rms < silenceThreshold) {
+    if (!silenceStart.value) {
+      silenceStart.value = Date.now()
+      console.log('Silence started at:', silenceStart.value)
+    } else if (Date.now() - silenceStart.value >= 2000) {
+      // Silence detected for 2 seconds
+      onSilenceDetected()
+      // return
     }
+  } else {
+    if (silenceStart.value) {
+      console.log('Silence reset, audio detected')
+    }
+    silenceStart.value = null
+  }
 
-    mediaRecorder.value.onstop = async () => {
-      const audioBlob = new Blob(audioChunks.value, { type: 'audio/webm' })
+  // Continue checking
+  requestAnimationFrame(checkSilence)
+}
+
+const fetchTranscription = async () => {
+  if(audioChunks.length === 0) return
+
+  const chunk = [audioChunks.shift()]
+
+  const audioBlob = new Blob(chunk, { type: 'audio/webm' })
       const formData = new FormData()
       formData.append('audio', audioBlob)
 
@@ -92,12 +109,46 @@ const startRecording = async () => {
         const data = await response.json()
         transcript.value += data.transcript
       } catch (error) {
+        audioChunks.unshift(chunk[0])
         console.error('Error transcribing:', error)
       }
+}
+
+const onSilenceDetected = () => {
+  console.log('Silence detected for 2 seconds, fetching transcription')
+  // stopRecording()
+  fetchTranscription()
+}
+
+const startRecording = async () => {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+
+    // Set up Web Audio API for silence detection
+    audioContext.value = new (window.AudioContext || window.webkitAudioContext)()
+    analyser.value = audioContext.value.createAnalyser()
+    analyser.value.fftSize = 256
+    const source = audioContext.value.createMediaStreamSource(stream)
+    source.connect(analyser.value)
+
+    mediaRecorder.value = new MediaRecorder(stream)
+    audioChunks = []
+    silenceStart.value = null
+
+    mediaRecorder.value.ondataavailable = (event) => {
+      // console.log('silenceStart', silenceStart)
+      audioChunks.push(event.data)
     }
 
-    mediaRecorder.value.start(2000)
+    mediaRecorder.value.onstop = async () => {
+      fetchTranscription()
+    }
+
+    mediaRecorder.value.start(10000)
     isRecording.value = true
+
+    // Start silence detection
+    checkSilence()
   } catch (error) {
     console.error('Error accessing microphone:', error)
   }
@@ -108,7 +159,8 @@ const stopRecording = () => {
     mediaRecorder.value.stop()
     isRecording.value = false
   }
-  clearSilenceTimeout()
+  // Reset silence detection
+  silenceStart.value = null
 }
 
 const sendTranscript = async () => {
