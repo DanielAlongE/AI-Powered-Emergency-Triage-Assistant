@@ -111,8 +111,7 @@ class TriageTestRunner:
         if self.max_workers == 1:
             # Single-threaded execution
             for i, conversation in enumerate(test_conversations):
-                if i % 50 == 0:  # Progress update every 50 cases
-                    print(f"Processing case {i+1}/{len(test_conversations)}...")
+                print(f"Processing case {i+1}/{len(test_conversations)}: {conversation.case_id}...")
 
                 result = self._test_single_case(agent, conversation, use_source_case_text)
                 results.append(result)
@@ -125,8 +124,8 @@ class TriageTestRunner:
                 }
 
                 for i, future in enumerate(as_completed(future_to_conversation)):
-                    if i % 50 == 0:  # Progress update every 50 cases
-                        print(f"Completed {i+1}/{len(test_conversations)} cases...")
+                    conv = future_to_conversation[future]
+                    print(f"Completed case {i+1}/{len(test_conversations)}: {conv.case_id}...")
 
                     result = future.result()
                     results.append(result)
