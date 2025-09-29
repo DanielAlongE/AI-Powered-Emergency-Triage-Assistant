@@ -27,7 +27,7 @@
 </template>
 
 <script setup>
-import { ref, inject, watch } from 'vue'
+import { ref, inject, watch, onUnmounted } from 'vue'
 import ChatBubble from '@/components/ChatBubble.vue'
 import HighlightTextarea from '@/components/HighlightTextarea.vue'
 
@@ -38,9 +38,36 @@ const isRecording = ref(false)
 const mediaRecorder = ref(null)
 const audioChunks = ref([])
 const messages = ref([])
+const recordingTimeout = ref(null)
 
 
 watch(transcript, (x) => console.log(x))
+
+const setSilenceTimeout = () => {
+    recordingTimeout.value = setTimeout(() => {
+
+      console.log('transcribing...')
+      console.log('audioChunks', audioChunks.value?.length)
+    }, 2000)
+}
+
+const clearSilenceTimeout = () => {
+  if (recordingTimeout.value) {
+    clearTimeout(recordingTimeout.value)
+    recordingTimeout.value = null
+  }
+}
+
+const resetSilenceTimeout = () => {
+  console.log('resetSilenceTimeout')
+  clearSilenceTimeout()
+  setSilenceTimeout()
+}
+
+// Clear timeout when component is unmounted
+onUnmounted(clearSilenceTimeout)
+
+
 
 const startRecording = async () => {
   try {
@@ -69,7 +96,7 @@ const startRecording = async () => {
       }
     }
 
-    mediaRecorder.value.start()
+    mediaRecorder.value.start(2000)
     isRecording.value = true
   } catch (error) {
     console.error('Error accessing microphone:', error)
@@ -81,6 +108,7 @@ const stopRecording = () => {
     mediaRecorder.value.stop()
     isRecording.value = false
   }
+  clearSilenceTimeout()
 }
 
 const sendTranscript = async () => {
