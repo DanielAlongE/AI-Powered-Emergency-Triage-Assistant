@@ -19,10 +19,10 @@ base_image = (
 
 @app.cls(
     image=base_image,
-    # gpu=modal.gpu.A100(size="40GB"),    # A100 40GB for large models like gpt-oss:20b
-    gpu="B200",    # B200 for large models like gpt-oss:20b
-    memory=12288,                       # a bit more headroom than 8GB
-    concurrency_limit=1,                # one gen per GPU
+    # gpu=modal.gpu.A100(size="40GB"),
+    gpu="B200", 
+    memory=12288, 
+    concurrency_limit=1, 
     keep_warm=0,                        # keep daemon + cache warm
     timeout=600,
     container_idle_timeout=300,         # Scale down after 5 minutes of inactivity
