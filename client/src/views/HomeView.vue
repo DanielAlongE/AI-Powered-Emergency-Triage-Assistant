@@ -1,5 +1,5 @@
 <script setup>
-import { ref, inject } from 'vue'
+import { ref, inject, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 
 const apiUrl = inject('$apiUrl')
@@ -11,6 +11,7 @@ const isSubmitting = ref(false)
 const showSnackbar = ref(false)
 const snackbarMessage = ref('')
 const snackbarColor = ref('error')
+const sessions = ref([])
 
 const submitSession = async () => {
   if (!sessionName.value.trim()) return
@@ -41,6 +42,23 @@ const submitSession = async () => {
     isSubmitting.value = false
   }
 }
+
+const fetchSessions = async () => {
+  try {
+    const response = await fetch(`${apiUrl}/api/v1/sessions`)
+    if (response.ok) {
+      sessions.value = await response.json()
+    } else {
+      console.error('Failed to fetch sessions')
+    }
+  } catch (error) {
+    console.error('Error fetching sessions:', error)
+  }
+}
+
+onMounted(() => {
+  fetchSessions()
+})
 </script>
 
 <template>
@@ -61,6 +79,19 @@ const submitSession = async () => {
       >
         Submit
       </v-btn>
+    </v-card-text>
+  </v-card>
+
+  <v-card class="pa-4 mt-4">
+    <v-card-title>Existing Sessions</v-card-title>
+    <v-card-text>
+      <v-list v-if="sessions.length > 0">
+        <v-list-item v-for="session in sessions" :key="session.id" @click="router.push(`/vosk/${session.id}`)">
+            <v-list-item-title>{{ session.name }}</v-list-item-title>
+            <v-list-item-subtitle>Created: {{ new Date(session.created_at).toLocaleString() }}</v-list-item-subtitle>
+        </v-list-item>
+      </v-list>
+      <p v-else>No sessions found.</p>
     </v-card-text>
   </v-card>
 
