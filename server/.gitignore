@@ -208,7 +208,7 @@ __marimo__/
 
 # Project-specific ignores for triage system
 # ChromaDB database
-data/chroma/
+data/chroma*
 chroma.sqlite3
 *.sqlite
 *.db
