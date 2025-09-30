@@ -1,6 +1,14 @@
 <script setup>
 import { RouterView } from 'vue-router'
+import { useTheme } from 'vuetify'
+
 // RouterLink,
+
+const theme = useTheme()
+
+const toggleTheme = () => {
+  theme.global.name.value = theme.global.name.value === 'light' ? 'dark' : 'light'
+}
 </script>
 
 <template>
@@ -10,7 +18,13 @@ import { RouterView } from 'vue-router'
         <v-app-bar-nav-icon></v-app-bar-nav-icon>
       </template>
 
-      <v-app-bar-title>Application Bar</v-app-bar-title>
+      <v-app-bar-title>AI-Powered Emergency Triage Assistant</v-app-bar-title>
+
+      <template v-slot:append>
+        <v-btn icon @click="toggleTheme">
+          <v-icon>mdi-theme-light-dark</v-icon>
+        </v-btn>
+      </template>
     </v-app-bar>
     <v-main>
       <v-container>
