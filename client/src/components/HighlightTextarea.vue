@@ -200,8 +200,6 @@ const handleKeyDown = (e) => {
         selection.removeAllRanges();
         selection.addRange(range);
 
-        // You might need to focus the element again to position the cursor.
-        // editableDiv.value.focus();
     }
 }
 
