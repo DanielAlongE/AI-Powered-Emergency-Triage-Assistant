@@ -61,7 +61,7 @@ class ConversationAnalizer:
         You are a helpful assistant specialized in medical conversation analysis. Your task is to analyze the following transcript of a conversation between a triage nurse and a patient.
         The Nurse asks most of the questions about the symptoms the patient has. Correct obvious grammatical errors in the transcription.
         For each line of dialogue, you must identify the speaker as either "NURSE" or "PATIENT".
-        
+        Do not generate any other prediction based on the context supplied.
         Transcript:
         {transcript}
         
