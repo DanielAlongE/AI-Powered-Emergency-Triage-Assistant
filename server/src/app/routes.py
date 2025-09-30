@@ -1,4 +1,4 @@
-from fastapi import APIRouter, File, Form, UploadFile
+from fastapi import APIRouter, File, Form, UploadFile, HTTPException
 import asyncio
 import numpy as np
 from app.schemas import ConversationResponse, ConversationRequest, TranscriptionRequest, TranscriptionResponse
@@ -13,27 +13,40 @@ router = APIRouter(prefix="/api", tags=["triage"])
 async def transcribe(
     audio: UploadFile = File(...),
 ):
-    audio_data = await audio.read()
+    try:
+        audio_data = await audio.read()
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Failed to read audio file: {str(e)}")
 
     # Use asyncio subprocess to run FFmpeg for conversion
-    process = await asyncio.create_subprocess_exec(
-        'ffmpeg', '-f', 'webm', '-i', 'pipe:0', '-f', 's16le', '-ac', '1', '-ar', '16000', 'pipe:1',
-        stdin=asyncio.subprocess.PIPE,
-        stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE
-    )
-    out, err = await process.communicate(input=audio_data)
+    try:
+        process = await asyncio.create_subprocess_exec(
+            'ffmpeg', '-f', 'webm', '-i', 'pipe:0', '-f', 's16le', '-ac', '1', '-ar', '16000', 'pipe:1',
+            stdin=asyncio.subprocess.PIPE,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE
+        )
+        out, err = await process.communicate(input=audio_data)
 
-    if process.returncode != 0:
-        raise RuntimeError(f"FFmpeg error: {err.decode()}")
+        if process.returncode != 0:
+            raise HTTPException(status_code=500, detail=f"FFmpeg conversion failed: {err.decode()}")
 
-    audio_np_array = np.frombuffer(out, dtype=np.int16)
-    sample_rate = 16000
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Audio processing error: {str(e)}")
+
+    try:
+        audio_np_array = np.frombuffer(out, dtype=np.int16)
+        sample_rate = 16000
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Audio data conversion failed: {str(e)}")
 
     # Transcribe
-    transcriber = VoskTranscriber()
-    transcript = transcriber.transcribe((sample_rate, audio_np_array))
-    
+    try:
+        transcriber = VoskTranscriber()
+        transcript = transcriber.transcribe((sample_rate, audio_np_array))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Transcription failed: {str(e)}")
+
     return TranscriptionResponse(transcript=transcript)
 
 
