@@ -94,7 +94,7 @@ async def create_session(session: SessionCreate, db: DBSession = Depends(get_db)
 
 @router.get("/v1/sessions", response_model=List[SessionResponse])
 async def list_sessions(db: DBSession = Depends(get_db)):
-    return db.query(SessionModel).all()
+    return db.query(SessionModel).order_by(SessionModel.created_at.desc()).all()
 
 @router.get("/v1/sessions/{session_id}", response_model=SessionResponse)
 async def get_session(session_id: UUID, db: DBSession = Depends(get_db)):
