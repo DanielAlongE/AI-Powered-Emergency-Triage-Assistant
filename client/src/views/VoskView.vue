@@ -1,9 +1,15 @@
 <template>
   <div>
+    <v-card class="elevation-2 mt-4">
+      <v-card-title>Suggestion</v-card-title>
+      <v-card-text>
+        <h1>Start by introducing yourself as the nurse!</h1>
+      </v-card-text>
+    </v-card>
     <v-row>
-      <v-col cols="8">
-        <v-card class="elevation-5 mt-4">
-          <v-card-title>Vosk Speech Recognition</v-card-title>
+      <v-col cols="4">
+        <v-card class="elevation-2 mt-4 card-min-height">
+          <v-card-title>Speech Recognition</v-card-title>
           <v-card-text>
             <v-btn
               @click="isRecording ? stopRecording() : startRecording()"
@@ -12,42 +18,55 @@
             >
               {{ isRecording ? 'Stop Recording' : 'Start Recording' }}
             </v-btn>
-            <HighlightTextarea  v-model="transcript" label="Transcript" min-height="500px" :words-to-highlight="['ache', 'breath', 'bleed']"></HighlightTextarea>
-            <v-btn @click="sendTranscript" color="success" class="mt-2">Send Transcript</v-btn>
+            <HighlightTextarea  v-model="transcript" label="Transcript" min-height="280px" :words-to-highlight="['ache', 'breathe', 'bleed', 'pain']"></HighlightTextarea>
           </v-card-text>
         </v-card>
       </v-col>
       <v-col cols="4">
-        <v-card class="elevation-4">
-          <ChatBubble v-for="(msg, index) in messages" :key="index" :content="msg.content" :primary="['NURSE', 'assistant'].includes(msg.role)" />
+        <ChatConversation :transcript="transcript" />
+      </v-col>
+      <v-col cols="4">
+        <v-card class="elevation-2 mt-4 card-min-height">
+          <v-card-title>Triage Summary</v-card-title>
         </v-card>
       </v-col>
     </v-row>
+    <v-card class="elevation-2 mt-4">
+      <v-card-title>Audit Log</v-card-title>
+      <v-data-table :items="tableItems"></v-data-table>
+    </v-card>
+
   </div>
 </template>
 
 <script setup>
 import { ref, inject, markRaw, onUnmounted } from 'vue'
-import ChatBubble from '@/components/ChatBubble.vue'
+import { useRoute } from 'vue-router'
+import ChatConversation from '@/components/ChatConversation.vue'
 import HighlightTextarea from '@/components/HighlightTextarea.vue'
 
 const apiUrl = inject('$apiUrl')
 
+const route = useRoute()
 const transcript = ref('')
 const isRecording = ref(false)
 const mediaRecorder = ref(null)
-// const audioChunks = ref([])
-const messages = ref([])
 const audioContext = ref(null)
 const analyser = ref(null)
 const silenceStart = ref(null)
 const silenceThreshold = 0.01 // Adjust this threshold as needed
+const isTranscribing = ref(false)
 
 let audioChunks = markRaw([])
 
+const tableItems = [
+  {suggestion: "Sample suggestion 1", response: "Sample response 2", similarity: '50%'},
+  {suggestion: "Sample suggestion 3", response: "Sample response 4", similarity: '50%'},
+  {suggestion: "Sample suggestion 5", response: "Sample response 6", similarity: '50%'},
+]
 
-// console.log({audioChunks, v: audioChunks})
 
+const sessionId = route.params.sessionId
 
 // Cleanup audio context when component is unmounted
 onUnmounted(() => {
@@ -76,10 +95,11 @@ const checkSilence = () => {
     if (!silenceStart.value) {
       silenceStart.value = Date.now()
       console.log('Silence started at:', silenceStart.value)
-    } else if (Date.now() - silenceStart.value >= 2000) {
+    } else if (Date.now() - silenceStart.value >= 1500) {
       // Silence detected for 2 seconds
       onSilenceDetected()
-      // return
+      // if(!isRecording.value) 
+      return
     }
   } else {
     if (silenceStart.value) {
@@ -93,31 +113,37 @@ const checkSilence = () => {
 }
 
 const fetchTranscription = async () => {
-  if(audioChunks.length === 0) return
+  if (audioChunks.length === 0 || isTranscribing.value) return
 
-  const chunk = [audioChunks.shift()]
+  isTranscribing.value = true
+  const chunksToSend = [...audioChunks] // Copy all current chunks
 
-  const audioBlob = new Blob(chunk, { type: 'audio/webm' })
-      const formData = new FormData()
-      formData.append('audio', audioBlob)
+  const audioBlob = new Blob(chunksToSend, { type: 'audio/webm' })
+  const formData = new FormData()
+  formData.append('audio', audioBlob)
 
-      try {
-        const response = await fetch(`${apiUrl}/api/v1/transcribe`, {
-          method: 'POST',
-          body: formData
-        })
-        const data = await response.json()
-        transcript.value += data.transcript
-      } catch (error) {
-        audioChunks.unshift(chunk[0])
-        console.error('Error transcribing:', error)
-      }
+  try {
+    const response = await fetch(`${apiUrl}/api/v1/transcribe?session_id=${sessionId}`, {
+      method: 'POST',
+      body: formData
+    })
+    const data = await response.json()
+    const newTranscript = data?.transcript || ''
+    if(newTranscript.length > 2){
+      transcript.value += newTranscript
+    }
+    // Clear chunks after successful transcription
+    audioChunks = []
+  } catch (error) {
+    console.error('Error transcribing:', error)
+  } finally {
+    isTranscribing.value = false
+  }
 }
 
 const onSilenceDetected = () => {
   console.log('Silence detected for 2 seconds, fetching transcription')
-  // stopRecording()
-  fetchTranscription()
+  restartRecording()
 }
 
 const startRecording = async () => {
@@ -144,11 +170,14 @@ const startRecording = async () => {
       fetchTranscription()
     }
 
-    mediaRecorder.value.start(10000)
+    mediaRecorder.value.start(5000)
     isRecording.value = true
 
     // Start silence detection
     checkSilence()
+
+    // intervalTimerId.value = setInterval(fetchTranscription, 10000)
+
   } catch (error) {
     console.error('Error accessing microphone:', error)
   }
@@ -163,20 +192,16 @@ const stopRecording = () => {
   silenceStart.value = null
 }
 
-const sendTranscript = async () => {
-  if (!transcript.value.trim()) return
-
-  try {
-    const response = await fetch(`${apiUrl}/api/v1/conversation`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ transcript: transcript.value })
-    })
-    const { conversation } = await response.json()
-
-    messages.value = conversation
-  } catch (error) {
-    console.error('Error sending transcript:', error)
-  }
+// This hack became necessary as sending chunks of audio data caused errors
+const restartRecording = () => {
+  mediaRecorder.value.stop()
+  silenceStart.value = null
+  startRecording()
 }
 </script>
+
+<style scoped>
+.card-min-height {
+  min-height: 450px;
+}
+</style>
