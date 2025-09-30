@@ -10,7 +10,12 @@ const router = createRouter({
       component: HomeView,
     },
     {
-      path: '/vosk',
+      path: '/native/:sessionId',
+      name: 'native',
+      component: () => import('../views/NativeView.vue'),
+    },
+    {
+      path: '/vosk/:sessionId',
       name: 'vosk',
       // route level code-splitting
       // this generates a separate chunk (Vosk.[hash].js) for this route
