@@ -1,15 +1,18 @@
 <script setup>
 import { ref, inject, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import ChatBubble from '@/components/ChatBubble.vue'
 
 const apiUrl = inject('$apiUrl')
 
 const router = useRouter()
+const route = useRoute()
 const transcript = ref('')
 const isListening = ref(false)
 const recognition = ref(null)
 const messages = ref([])
+
+const sessionId = route.params.sessionId
 
 onMounted(() => {
   if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
@@ -44,7 +47,7 @@ onMounted(() => {
       isListening.value = false
     }
   } else {
-    router.push('/vosk')
+    router.push(`/vosk/${sessionId}`)
     console.warn('Speech recognition not supported in this browser')
   }
 })
@@ -65,7 +68,7 @@ const sendTranscript = async () => {
   if (!transcript.value.trim()) return
 
   try {
-    const response = await fetch(`${apiUrl}/api/v1/conversation`, {
+    const response = await fetch(`${apiUrl}/api/v1/conversation?session_id=${sessionId}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ transcript: transcript.value })
