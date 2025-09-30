@@ -1,15 +1,23 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, inject } from 'vue'
+import { useRouter } from 'vue-router'
+
+const apiUrl = inject('$apiUrl')
+
+const router = useRouter()
 
 const sessionName = ref('')
 const isSubmitting = ref(false)
+const showSnackbar = ref(false)
+const snackbarMessage = ref('')
+const snackbarColor = ref('error')
 
 const submitSession = async () => {
   if (!sessionName.value.trim()) return
 
   isSubmitting.value = true
   try {
-    const response = await fetch('/api/v1/sessions', {
+    const response = await fetch(`${apiUrl}/api/v1/sessions`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -18,12 +26,18 @@ const submitSession = async () => {
     })
     if (response.ok) {
       sessionName.value = ''
+
+      const { id } = await response.json()
+      router.push(`/native/${id}`)
+
     } else {
-      console.error('Failed to create session')
+      snackbarMessage.value = 'Failed to create session'
+      showSnackbar.value = true
+      isSubmitting.value = false
     }
-  } catch (error) {
-    console.error('Error submitting session:', error)
-  } finally {
+  } catch {
+    snackbarMessage.value = 'Error submitting session'
+    showSnackbar.value = true
     isSubmitting.value = false
   }
 }
@@ -49,4 +63,12 @@ const submitSession = async () => {
       </v-btn>
     </v-card-text>
   </v-card>
+
+  <v-snackbar
+    v-model="showSnackbar"
+    :timeout="2000"
+    :color="snackbarColor"
+  >
+    {{ snackbarMessage }}
+  </v-snackbar>
 </template>
