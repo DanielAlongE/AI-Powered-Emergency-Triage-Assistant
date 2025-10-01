@@ -13,11 +13,7 @@
         @update-red-flag-terms="updateRedFlags" :conversations="conversations" />
       </v-col>
     </v-row>
-    <v-card class="elevation-2 mt-4">
-      <v-card-title>Audit Log</v-card-title>
-      <v-data-table :items="tableItems"></v-data-table>
-    </v-card>
-
+    <SuggestionAuditLog :suggestion="suggestion" :actualResponse="actualResponse" />
   </div>
 </template>
 
@@ -27,6 +23,7 @@ import ChatConversation from '@/components/ChatConversation.vue'
 import VoskAudioTranscriber from '@/components/VoskAudioTranscriber.vue'
 import TriageSummary from '@/components/TriageSummary.vue'
 import NextQuestionSuggestion from '@/components/NextQuestionSuggestion.vue'
+import SuggestionAuditLog from '@/components/SuggestionAuditLog.vue'
 
 const transcript = ref('')
 const conversations = ref([])
@@ -34,6 +31,16 @@ const suggestion = ref('Start by introducing yourself as the nurse!')
 const redFlagTerms = ref({})
 
 const redFlagWords = computed(() => Object.values(redFlagTerms.value))
+
+const actualResponse = computed(() => { 
+  const lastMessage = conversations.value.at(-1)
+
+  if(lastMessage && ['NURSE', 'assistant'].includes(lastMessage.role)){
+    return lastMessage.content
+  }
+
+  return null
+})
 
 const updateTranscript = (newTranscript) => {
   transcript.value = newTranscript
@@ -53,12 +60,5 @@ const updateRedFlags = (flags) => {
     redFlagTerms.value[f] = f
   }) 
 }
-
-const tableItems = [
-  {suggestion: "Sample suggestion 1", response: "Sample response 2", similarity: '50%'},
-  {suggestion: "Sample suggestion 3", response: "Sample response 4", similarity: '50%'},
-  {suggestion: "Sample suggestion 5", response: "Sample response 6", similarity: '50%'},
-]
-
 
 </script>
