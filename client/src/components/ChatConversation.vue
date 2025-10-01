@@ -6,11 +6,14 @@
       <v-skeleton-loader v-if="loading" type="text"></v-skeleton-loader>
     </v-card-text>
   </v-card>
+
+  <TriageSummary :conversations="messages" />
 </template>
 
 <script setup>
-import { ref, inject, watchEffect } from 'vue'
+import { ref, inject, watch } from 'vue'
 import ChatBubble from '@/components/ChatBubble.vue'
+import TriageSummary from '@/components/TriageSummary.vue'
 
 const props = defineProps({
   transcript: {
@@ -21,10 +24,17 @@ const props = defineProps({
 
 const apiUrl = inject('$apiUrl')
 
-
 const messages = ref([])
 const loading = ref(false)
 
+// Debounce function
+const debounce = (func, delay) => {
+  let timeoutId
+  return (...args) => {
+    clearTimeout(timeoutId)
+    timeoutId = setTimeout(() => func.apply(null, args), delay)
+  }
+}
 
 const sendTranscript = async () => {
   if (!props.transcript.trim()) return
@@ -46,7 +56,11 @@ const sendTranscript = async () => {
   }
 }
 
-watchEffect(sendTranscript, props.transcript)
+// Debounced version of sendTranscript with 2-second delay
+const debouncedSendTranscript = debounce(sendTranscript, 2000)
+
+// Watch for transcript changes and call debounced function
+watch(() => props.transcript, debouncedSendTranscript)
 
 
 </script>
