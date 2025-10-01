@@ -21,6 +21,7 @@ class ESIAssessment(BaseModel):
     confidence: Optional[float] = Field(None, ge=0.0, le=1.0, description="Confidence score for the assessment")
     rationale: Optional[str] = Field(None, description="Explanation of the ESI level assignment")
     follow_up_questions: Optional[List[str]] = Field(default_factory=list, description="Suggested follow-up questions")
+    red_flag_terms: Optional[List[str]] = Field(default_factory=list, description="Red flag terms detected in conversation")
     timestamp: datetime = Field(default_factory=datetime.now, description="Assessment timestamp")
     agent_name: Optional[str] = Field(None, description="Name of the agent that made the assessment")
 
