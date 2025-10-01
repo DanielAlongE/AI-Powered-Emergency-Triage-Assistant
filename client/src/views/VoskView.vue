@@ -26,9 +26,7 @@
         <ChatConversation :transcript="transcript" />
       </v-col>
       <v-col cols="4">
-        <v-card class="elevation-2 mt-4 card-min-height">
-          <v-card-title>Triage Summary</v-card-title>
-        </v-card>
+        
       </v-col>
     </v-row>
     <v-card class="elevation-2 mt-4">
