@@ -1,14 +1,19 @@
+from agents.implementations.handbook_rag_ollama_agent import HandbookRagOllamaAgent
+from agents.implementations.handbook_rag_openai_agent import HandbookRagOpenAiAgent
 from fastapi import APIRouter, File, Form, UploadFile, HTTPException, Depends
+from models.esi_assessment import ConversationTurn, ESIAssessment, MedicalConversation
 from sqlalchemy.orm import Session as DBSession
 from typing import List
 from uuid import UUID
 import asyncio
 import numpy as np
-from app.schemas import ConversationResponse, ConversationRequest, TranscriptionRequest, TranscriptionResponse, SessionCreate, SessionResponse, SessionUpdate
-from models.llama import ConversationAnalizer, MODEL_GEMMA_3
+from app.schemas import ConversationResponse, ConversationRequest, TranscriptionRequest, TranscriptionResponse, SessionCreate, SessionResponse, SessionUpdate, TriageSummaryRequest
+from models.llama import ConversationAnalizer, MODEL_GEMMA_3, MODEL_GPT_4O
 from models.transcription import VoskTranscriber
 from .database import SessionLocal
 from .models import Session as SessionModel
+from config import get_settings
+
 
 router = APIRouter(prefix="/api", tags=["triage"])
 
@@ -71,13 +76,29 @@ async def transcribe(
 # @router.post("/v1/feedback")
 # async def feedback(feedback: NurseFeedback) -> dict:
 
+@router.post("/v1/triage-summary", response_model=ESIAssessment)
+async def triage_summary(request: TriageSummaryRequest):
+    option = {}
+
+    if get_settings().online_mode:
+        agent = HandbookRagOpenAiAgent('OpenAi Agent', option)
+    else:
+        agent = HandbookRagOllamaAgent('Ollama Agent', option)
+
+    # Run the synchronous triage method in a thread pool to avoid blocking
+    result = await asyncio.to_thread(agent.triage, conversation=MedicalConversation(turns=request.turns))
+    return result
+
+    
+        
 
 # given a transcription text, return an array of chat like conversation between the nurse and patient
 # we have the option of either using the converstation_analizer based on llama3.2
 @router.post("/v1/conversation", response_model=ConversationResponse)
 async def converstaion(request: ConversationRequest) -> ConversationResponse:
     try:
-        return ConversationAnalizer(MODEL_GEMMA_3).analyze(request.transcript)
+        model = MODEL_GPT_4O if get_settings().online_mode else MODEL_GEMMA_3 
+        return ConversationAnalizer(model).analyze(request.transcript)
     except Exception as e:
         print(e)
         return {'converstaion': []}
