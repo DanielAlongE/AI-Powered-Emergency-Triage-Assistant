@@ -7,11 +7,14 @@
 # 3. Ensure the 'ollama' Python library is installed: pip install ollama
 import json
 import ollama
+from openai import OpenAI
+from config import get_settings
 
 
 MODEL_LLAMA_3 = 'llama3.2'
 MODEL_GEMMA_3 = 'gemma3:4b'
 MODEL_GPT_OSS = 'gpt-oss:20b'
+MODEL_GPT_4O = 'gpt-4o-mini'
 
 RESPONSE_FORMAT = {
     'conversation': [
@@ -25,7 +28,7 @@ class ConversationAnalizer:
         self.model = model
         print(f"initialized ConversationAnalizer using {model}")
 
-    def chat(self, prompt: str):
+    def chat_with_ollama(self, prompt: str):
         args = {}
         if self.model == MODEL_LLAMA_3:
             args['format'] = "json"
@@ -55,6 +58,43 @@ class ConversationAnalizer:
             print(f"An error occurred with Ollama: {e}")
             return "Analysis failed due to an error. Ensure Ollama is running and the model is available."
 
+    def chat_with_openai(self, prompt: str):
+        settings = get_settings()
+        if not settings.openai_api_key:
+            return "OpenAI API key not configured"
+
+        try:
+            client = OpenAI(api_key=settings.openai_api_key)
+            response = client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {'role': 'system', 'content': 'You are a helpful assistant.'},
+                    {'role': 'user', 'content': prompt}
+                ],
+                response_format={"type": "json_object"}
+            )
+
+            # Extract the model's response
+            analysis = response.choices[0].message.content.strip()
+            # cleanup the response
+            analysis = analysis.replace('```json', '').replace('```', '')
+
+            try:
+                return json.loads(analysis)
+            except json.JSONDecodeError:
+                return {'conversation':[]}
+
+        except Exception as e:
+            print(f"An error occurred with OpenAI: {e}")
+            return "Analysis failed due to an error. Ensure OpenAI API key is configured and valid."
+
+    def chat(self, prompt: str):
+        if self.model == MODEL_GPT_4O:
+            return self.chat_with_openai(prompt)
+        else:
+            return self.chat_with_ollama(prompt)
+
+        
 
     def analyze(self, transcript: str):
         prompt = f"""
@@ -70,6 +110,3 @@ class ConversationAnalizer:
         """
 
         return self.chat(prompt)
-
-
-
