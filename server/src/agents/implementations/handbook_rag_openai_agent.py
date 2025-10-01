@@ -250,5 +250,6 @@ class HandbookRagOpenAiAgent(BaseTriageAgent):
             confidence=confidence,
             rationale=rationale,
             follow_up_questions=follow_up_questions,
+            red_flag_terms=[flag.term for flag in matches],
             agent_name=self.name
         )
