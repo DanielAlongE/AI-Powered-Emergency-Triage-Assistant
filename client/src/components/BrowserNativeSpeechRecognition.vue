@@ -22,7 +22,7 @@ const sessionId = route.params.sessionId
 watch(transcript, () => emit('update-transcript', transcript.value))
 
 onMounted(() => {
-  if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+  if (('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) && navigator.onLine) {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
     recognition.value = new SpeechRecognition()
     recognition.value.continuous = true
