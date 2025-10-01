@@ -42,6 +42,8 @@ class AppSettings(BaseSettings):
     transcript_window_seconds: int = Field(default=120)
     max_follow_up_questions: int = Field(default=3)
 
+    online_mode: bool = Field(default=False)
+
 
 @lru_cache
 def get_settings() -> AppSettings:
