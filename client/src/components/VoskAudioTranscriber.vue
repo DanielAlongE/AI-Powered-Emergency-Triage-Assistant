@@ -1,9 +1,8 @@
 <template>
-  <v-card class="elevation-2 mt-4 overflow-y-auto"
-    max-height="400"
-    v-scroll.self="onScroll"
+  <v-card class="elevation-2 mt-4"
+    height="400px"
   >
-    <v-card-title>Audio Transcript</v-card-title>
+    <v-card-title>Speech Transcription</v-card-title>
     <v-card-text>
       <v-btn
         @click="isRecording ? stopRecording() : startRecording()"
@@ -12,15 +11,17 @@
       >
         {{ isRecording ? 'Stop Recording' : 'Start Recording' }}
       </v-btn>
-      <HighlightTextarea  v-model="transcript" label="Transcript" min-height="280px" :words-to-highlight="['ache', 'breathe', 'bleed', 'pain']"></HighlightTextarea>
+      <HighlightTextarea  v-model="transcript" label="Transcript" height="280px" :words-to-highlight="['ache', 'breathe', 'bleed', 'pain']"></HighlightTextarea>
     </v-card-text>
   </v-card>
 </template>
 
 <script setup>
-import { ref, inject, markRaw, onUnmounted } from 'vue'
+import { ref, inject, markRaw, onUnmounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import HighlightTextarea from '@/components/HighlightTextarea.vue'
+
+const emit = defineEmits(['update-transcript'])
 
 const apiUrl = inject('$apiUrl')
 
@@ -46,6 +47,8 @@ onUnmounted(() => {
   }
 })
 
+
+watch(transcript, () => emit('update-transcript', transcript.value))
 
 
 const checkSilence = () => {
