@@ -1,8 +1,11 @@
 <template>
-  <div class="highlight-container" :class="containerClass" :style="containerStyle">
+  <div class="highlight-container"
+  :class="containerClass"
+  :style="containerStyle"
+  >
     <div
       ref="editableDiv"
-      class="highlight-textarea"
+      class="highlight-textarea overflow-y-auto"
       :style="textareaStyle"
       :contenteditable="!disabled && !readonly"
       @input="handleInput"
@@ -49,11 +52,11 @@ const props = defineProps({
   },
   highlightClass: {
     type: String,
-    default: 'highlight'
+    default: 'bg-error'
   },
   minHeight: {
     type: String,
-    default: '200px'
+    default: '280px'
   }
 })
 
@@ -84,7 +87,7 @@ const showPlaceholder = computed(() => {
 
 const containerClass = computed(() => props.class)
 const containerStyle = computed(() => ({ ...props.style }))
-const textareaStyle = computed(() => ({ minHeight: props.minHeight, whiteSpace: 'pre-wrap' }))
+const textareaStyle = computed(() => ({ minHeight: props.minHeight, height:'280px', whiteSpace: 'pre-wrap' }))
 
 const saveCursorPosition = () => {
   const sel = window.getSelection()
@@ -226,7 +229,6 @@ watch(highlightedText, updateCursor)
   word-wrap: break-word;
   outline: none;
   border-radius: 4px;
-  background-color: white;
 }
 
 .highlight-textarea:focus {
