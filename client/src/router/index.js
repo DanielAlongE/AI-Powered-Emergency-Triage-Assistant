@@ -10,17 +10,9 @@ const router = createRouter({
       component: HomeView,
     },
     {
-      path: '/native/:sessionId',
-      name: 'native',
-      component: () => import('../views/NativeView.vue'),
-    },
-    {
-      path: '/vosk/:sessionId',
-      name: 'vosk',
-      // route level code-splitting
-      // this generates a separate chunk (Vosk.[hash].js) for this route
-      // which is lazy-loaded when the route is visited.
-      component: () => import('../views/VoskView.vue'),
+      path: '/:speechModel/:sessionId',
+      name: 'dashboard',
+      component: () => import('../views/DashboardView.vue'),
     },
   ],
 })
