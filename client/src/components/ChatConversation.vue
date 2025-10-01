@@ -1,19 +1,20 @@
 <template>
-  <v-card class="elevation-2 mt-4 card-min-height">
+  <v-card class="elevation-2 mt-4" height="400px">
     <v-card-title>Conversation</v-card-title>
-    <v-card-text class="scroll-container">
+  <v-card-text>
+    <div ref="scrollContainer" class="scroll-container">
       <ChatBubble v-for="(msg, index) in messages" :key="index" :content="msg.content" :primary="['NURSE', 'assistant'].includes(msg.role)" />
       <v-skeleton-loader v-if="loading" type="text"></v-skeleton-loader>
-    </v-card-text>
+    </div>
+  </v-card-text>
   </v-card>
-
-  <TriageSummary :conversations="messages" />
 </template>
 
 <script setup>
-import { ref, inject, watch } from 'vue'
+import { ref, inject, watch, nextTick } from 'vue'
 import ChatBubble from '@/components/ChatBubble.vue'
-import TriageSummary from '@/components/TriageSummary.vue'
+
+
 
 const props = defineProps({
   transcript: {
@@ -23,9 +24,20 @@ const props = defineProps({
 })
 
 const apiUrl = inject('$apiUrl')
+const emit = defineEmits(['update-conversations'])
 
 const messages = ref([])
 const loading = ref(false)
+const scrollContainer = ref(null)
+
+// Function to scroll to bottom
+const scrollToBottom = () => {
+  nextTick(() => {
+    if (scrollContainer.value) {
+      scrollContainer.value.scrollTop = scrollContainer.value.scrollHeight
+    }
+  })
+}
 
 // Debounce function
 const debounce = (func, delay) => {
@@ -49,6 +61,8 @@ const sendTranscript = async () => {
     const { conversation } = await response.json()
 
     messages.value = conversation
+    emit('update-conversations', messages.value)
+    scrollToBottom()
   } catch (error) {
     console.error('Error sending transcript:', error)
   } finally{
@@ -68,5 +82,6 @@ watch(() => props.transcript, debouncedSendTranscript)
 <style>
 .scroll-container {
   overflow-y: scroll;
+  height:330px;
 }
 </style>
