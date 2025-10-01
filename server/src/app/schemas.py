@@ -1,4 +1,5 @@
 from typing import List, Optional
+from models.esi_assessment import ConversationTurn
 from pydantic import BaseModel
 from uuid import UUID
 from datetime import datetime
@@ -20,6 +21,10 @@ class TranscriptionRequest(BaseModel):
 
 class TranscriptionResponse(BaseModel):
     transcript: str
+
+
+class TriageSummaryRequest(BaseModel):
+    turns: List[ConversationTurn]
 
 class SessionCreate(BaseModel):
     name: str
