@@ -1,0 +1,103 @@
+# Untested GPU docker-compose file for local deployment with NVIDIA GPU support
+# Ensure you have the NVIDIA Container Toolkit installed: https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html
+version: '3.8'
+
+services:
+  triage-server-gpu:
+    build:
+      context: ./server
+      dockerfile: Dockerfile.gpu
+    container_name: triage-assistant-gpu
+    runtime: nvidia
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    expose:
+      - "8000"
+    ports:
+      - "11434:11434"  # Ollama API (exposed for debugging)
+    environment:
+      # Application Settings
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+
+      # Ollama Configuration
+      - OLLAMA_HOST=http://localhost:11434
+      - OLLAMA_DEFAULT_MODEL=${OLLAMA_DEFAULT_MODEL:-gpt-oss:20b}
+      - OLLAMA_EMBEDDING_MODEL=${OLLAMA_EMBEDDING_MODEL:-nomic-embed-text}
+      - INFERENCE_MODE=local
+
+      # RAG Configuration
+      - CHROMA_DB_PATH=/app/data/chroma_ollama
+      - CHROMA_OLLAMA_PATH=/app/data/chroma_ollama
+
+      # Database
+      - DATABASE_URL=sqlite:////app/data/sessions/sessions.db
+
+      # Application Behavior
+      - REQUEST_TIMEOUT_SECONDS=${REQUEST_TIMEOUT_SECONDS:-30.0}
+      - TRANSCRIPT_WINDOW_SECONDS=${TRANSCRIPT_WINDOW_SECONDS:-120}
+      - MAX_FOLLOW_UP_QUESTIONS=${MAX_FOLLOW_UP_QUESTIONS:-3}
+
+      # GPU Settings
+      - CUDA_VISIBLE_DEVICES=0
+
+    volumes:
+      # Persist ChromaDB vector store
+      - chroma-ollama-data:/app/data/chroma_ollama
+      # Persist session database
+      - session-data:/app/data/sessions
+      # Persist Ollama models
+      - ollama-models:/root/.ollama/models
+      # Mount config files (read-only)
+      - ./server/config:/app/config:ro
+
+    restart: unless-stopped
+
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:8000/')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s  # Longer startup for model download
+
+    networks:
+      - triage-network
+
+    shm_size: '2gb'  # Shared memory for PyTorch
+
+  triage-client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    container_name: triage-ui
+    ports:
+      - "3000:80"
+    depends_on:
+      - triage-server-gpu
+    restart: unless-stopped
+
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+
+    networks:
+      - triage-network
+
+volumes:
+  chroma-ollama-data:
+    driver: local
+  session-data:
+    driver: local
+  ollama-models:
+    driver: local
+
+networks:
+  triage-network:
+    driver: bridge

@@ -44,22 +44,15 @@ dependencies = [
     "sqlalchemy (>=2.0.0,<3.0.0)"
 ]
 
+[tool.poetry]
+package-mode = false
+
 [tool.poetry.scripts]
 main = "main:main"
 demo = "playground.whisper_debug:launch"
 dashboard = "testing.dashboard.launch:main"
 ingest = "utilities.ingest_protocols:main"
 ingest-dual = "utilities.ingest_protocols_dual:main"
-
-[tool.poetry]
-packages = [
-    {include = "app", from = "src"},
-    {include = "models", from = "src"},
-    {include = "playground", from = "src"},
-    {include = "services", from = "src"},
-    {include = "agents", from = "src"},
-    {include = "utilities", from = "src"}
-    ]
 
 
 [build-system]
