@@ -21,16 +21,15 @@ const submitSession = async () => {
     const response = await fetch(`${apiUrl}/api/v1/sessions`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ name: sessionName.value })
+      body: JSON.stringify({ name: sessionName.value }),
     })
     if (response.ok) {
       sessionName.value = ''
 
       const { id } = await response.json()
       router.push(`/native/${id}`)
-
     } else {
       snackbarMessage.value = 'Failed to create session'
       showSnackbar.value = true
@@ -86,20 +85,22 @@ onMounted(() => {
     <v-card-title>Existing Sessions</v-card-title>
     <v-card-text>
       <v-list v-if="sessions.length > 0">
-        <v-list-item v-for="session in sessions" :key="session.id" @click="router.push(`/native/${session.id}`)">
-            <v-list-item-title>{{ session.name }}</v-list-item-title>
-            <v-list-item-subtitle>Created: {{ new Date(session.created_at).toLocaleString() }}</v-list-item-subtitle>
+        <v-list-item
+          v-for="session in sessions"
+          :key="session.id"
+          @click="router.push(`/native/${session.id}`)"
+        >
+          <v-list-item-title>{{ session.name }}</v-list-item-title>
+          <v-list-item-subtitle
+            >Created: {{ new Date(session.created_at).toLocaleString() }}</v-list-item-subtitle
+          >
         </v-list-item>
       </v-list>
       <p v-else>No sessions found.</p>
     </v-card-text>
   </v-card>
 
-  <v-snackbar
-    v-model="showSnackbar"
-    :timeout="2000"
-    :color="snackbarColor"
-  >
+  <v-snackbar v-model="showSnackbar" :timeout="2000" :color="snackbarColor">
     {{ snackbarMessage }}
   </v-snackbar>
 </template>

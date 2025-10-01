@@ -1,8 +1,5 @@
 <template>
-  <div class="highlight-container"
-  :class="containerClass"
-  :style="containerStyle"
-  >
+  <div class="highlight-container" :class="containerClass" :style="containerStyle">
     <div
       ref="editableDiv"
       class="highlight-textarea overflow-y-auto"
@@ -24,40 +21,40 @@ import { ref, computed, nextTick, watch } from 'vue'
 const props = defineProps({
   modelValue: {
     type: String,
-    default: ''
+    default: '',
   },
   wordsToHighlight: {
     type: Array,
-    default: () => []
+    default: () => [],
   },
   placeholder: {
     type: String,
-    default: ''
+    default: '',
   },
   disabled: {
     type: Boolean,
-    default: false
+    default: false,
   },
   readonly: {
     type: Boolean,
-    default: false
+    default: false,
   },
   class: {
     type: String,
-    default: ''
+    default: '',
   },
   style: {
     type: Object,
-    default: () => ({})
+    default: () => ({}),
   },
   highlightClass: {
     type: String,
-    default: 'bg-error'
+    default: 'bg-error',
   },
   minHeight: {
     type: String,
-    default: '280px'
-  }
+    default: '280px',
+  },
 })
 
 const emit = defineEmits(['update:modelValue', 'input', 'focus', 'blur'])
@@ -68,17 +65,16 @@ const savedPosition = ref(null)
 
 const highlightedText = computed(() => {
   if (!props.modelValue) return ''
-  // Convert newlines to <br> tags for HTML display
-  let text = props.modelValue.replace(/\n/g, '<br>')
-  // console.log(editableDiv.value.innerHTML, editableDiv.value.textContent)
   const pattern = new RegExp(`\\b(${props.wordsToHighlight.join('|')})\\b`, 'gi')
-  return text.replace(pattern, `<span class="${props.highlightClass}">$1</span>`)
+  return props.modelValue.replace(pattern, `<span class="${props.highlightClass}">$1</span>`)
 })
 
-const prepareRawText = (text) => text.replace(/\n/g, '<br>')
+const prepareRawText = (text) => text
 
 const displayText = computed(() => {
-  return props.disabled || props.readonly ? prepareRawText(props.modelValue) : prepareRawText(highlightedText.value)
+  return props.disabled || props.readonly
+    ? prepareRawText(props.modelValue)
+    : prepareRawText(highlightedText.value)
 })
 
 const showPlaceholder = computed(() => {
@@ -87,7 +83,11 @@ const showPlaceholder = computed(() => {
 
 const containerClass = computed(() => props.class)
 const containerStyle = computed(() => ({ ...props.style }))
-const textareaStyle = computed(() => ({ minHeight: props.minHeight, height:'280px', whiteSpace: 'pre-wrap' }))
+const textareaStyle = computed(() => ({
+  minHeight: props.minHeight,
+  height: '280px',
+  whiteSpace: 'pre-wrap',
+}))
 
 const saveCursorPosition = () => {
   const sel = window.getSelection()
@@ -152,7 +152,7 @@ const getTextNodes = (element) => {
 const handleInput = () => {
   savedPosition.value = saveCursorPosition()
   const newValue = editableDiv.value.innerText
-  
+
   emit('update:modelValue', newValue)
   emit('input', newValue)
 }
@@ -186,24 +186,23 @@ const updateCursor = async () => {
 }
 
 const handleKeyDown = (e) => {
-    // Check for the Enter key (keyCode 13) and prevent default behavior.
-    if (e.keyCode === 13) {
-        e.preventDefault();
+  // Check for the Enter key (keyCode 13) and prevent default behavior.
+  if (e.keyCode === 13) {
+    e.preventDefault()
 
-        // Insert a line break element (<br>) instead.
-        const selection = window.getSelection();
-        const range = selection.getRangeAt(0);
-        const br1 = document.createElement('br');
-        const br2 = document.createElement('br');
-        range.deleteContents();
-        range.insertNode(br1);
-        range.insertNode(br2);
-        range.setStartAfter(br2);
-        range.setEndAfter(br2);
-        selection.removeAllRanges();
-        selection.addRange(range);
-
-    }
+    // Insert a line break element (<br>) instead.
+    const selection = window.getSelection()
+    const range = selection.getRangeAt(0)
+    const br1 = document.createElement('br')
+    const br2 = document.createElement('br')
+    range.deleteContents()
+    range.insertNode(br1)
+    range.insertNode(br2)
+    range.setStartAfter(br2)
+    range.setEndAfter(br2)
+    selection.removeAllRanges()
+    selection.addRange(range)
+  }
 }
 
 // Watch for changes and update cursor position
@@ -236,7 +235,7 @@ watch(highlightedText, updateCursor)
   box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
 }
 
-.highlight-textarea[contenteditable="false"] {
+.highlight-textarea[contenteditable='false'] {
   background-color: #f8f9fa;
   cursor: not-allowed;
 }

@@ -1,7 +1,5 @@
 <template>
-  <v-card class="elevation-2 mt-4"
-    height="400px"
-  >
+  <v-card class="elevation-2 mt-4" height="400px">
     <v-card-title>Speech Transcription</v-card-title>
     <v-card-text>
       <v-btn
@@ -11,7 +9,12 @@
       >
         {{ isRecording ? 'Stop Listening' : 'Start Listening' }}
       </v-btn>
-      <HighlightTextarea  v-model="transcript" label="Transcript" height="280px" :words-to-highlight="redFlags"></HighlightTextarea>
+      <HighlightTextarea
+        v-model="transcript"
+        label="Transcript"
+        height="280px"
+        :words-to-highlight="redFlags"
+      ></HighlightTextarea>
     </v-card-text>
   </v-card>
 </template>
@@ -22,7 +25,7 @@ import { useRoute } from 'vue-router'
 import HighlightTextarea from '@/components/HighlightTextarea.vue'
 
 const { redFlags } = defineProps({
-  redFlags: { type: Array, default: () => []}
+  redFlags: { type: Array, default: () => [] },
 })
 
 const emit = defineEmits(['update-transcript'])
@@ -41,7 +44,6 @@ const isTranscribing = ref(false)
 
 let audioChunks = markRaw([])
 
-
 const sessionId = route.params.sessionId
 
 // Cleanup audio context when component is unmounted
@@ -51,9 +53,7 @@ onUnmounted(() => {
   }
 })
 
-
 watch(transcript, () => emit('update-transcript', transcript.value))
-
 
 const checkSilence = () => {
   if (!analyser.value || !isRecording.value) return
@@ -76,7 +76,7 @@ const checkSilence = () => {
     } else if (Date.now() - silenceStart.value >= 1500) {
       // Silence detected for 2 seconds
       onSilenceDetected()
-      // if(!isRecording.value) 
+      // if(!isRecording.value)
       return
     }
   } else {
@@ -103,11 +103,11 @@ const fetchTranscription = async () => {
   try {
     const response = await fetch(`${apiUrl}/api/v1/transcribe?session_id=${sessionId}`, {
       method: 'POST',
-      body: formData
+      body: formData,
     })
     const data = await response.json()
     const newTranscript = data?.transcript || ''
-    if(newTranscript.length > 2){
+    if (newTranscript.length > 2) {
       transcript.value += newTranscript
     }
     // Clear chunks after successful transcription
@@ -155,7 +155,6 @@ const startRecording = async () => {
     checkSilence()
 
     // intervalTimerId.value = setInterval(fetchTranscription, 10000)
-
   } catch (error) {
     console.error('Error accessing microphone:', error)
   }

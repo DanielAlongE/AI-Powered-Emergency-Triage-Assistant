@@ -1,12 +1,17 @@
 <template>
   <v-card class="elevation-2 mt-4" height="400px">
     <v-card-title>Conversation</v-card-title>
-  <v-card-text>
-    <div ref="scrollContainer" class="scroll-container">
-      <ChatBubble v-for="(msg, index) in messages" :key="index" :content="msg.content" :primary="['NURSE', 'assistant'].includes(msg.role)" />
-      <v-skeleton-loader v-if="loading" type="text"></v-skeleton-loader>
-    </div>
-  </v-card-text>
+    <v-card-text>
+      <div ref="scrollContainer" class="scroll-container">
+        <ChatBubble
+          v-for="(msg, index) in messages"
+          :key="index"
+          :content="msg.content"
+          :primary="['NURSE', 'assistant'].includes(msg.role)"
+        />
+        <v-skeleton-loader v-if="loading" type="text"></v-skeleton-loader>
+      </div>
+    </v-card-text>
   </v-card>
 </template>
 
@@ -14,13 +19,11 @@
 import { ref, inject, watch, nextTick } from 'vue'
 import ChatBubble from '@/components/ChatBubble.vue'
 
-
-
 const props = defineProps({
   transcript: {
     type: String,
-    default: ''
-  }
+    default: '',
+  },
 })
 
 const apiUrl = inject('$apiUrl')
@@ -56,7 +59,7 @@ const sendTranscript = async () => {
     const response = await fetch(`${apiUrl}/api/v1/conversation`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ transcript: props.transcript })
+      body: JSON.stringify({ transcript: props.transcript }),
     })
     const { conversation } = await response.json()
 
@@ -65,7 +68,7 @@ const sendTranscript = async () => {
     scrollToBottom()
   } catch (error) {
     console.error('Error sending transcript:', error)
-  } finally{
+  } finally {
     loading.value = false
   }
 }
@@ -75,13 +78,11 @@ const debouncedSendTranscript = debounce(sendTranscript, 2000)
 
 // Watch for transcript changes and call debounced function
 watch(() => props.transcript, debouncedSendTranscript)
-
-
 </script>
 
 <style>
 .scroll-container {
   overflow-y: scroll;
-  height:330px;
+  height: 330px;
 }
 </style>

@@ -1,11 +1,10 @@
 <script setup>
 defineProps({ content: String, primary: Boolean })
-
 </script>
 
 <template>
   <div class="container">
-    <v-card-text :class="['bubble', primary ? 'bg-primary primary' : 'bg-accent' ]">
+    <v-card-text :class="['bubble', primary ? 'bg-primary primary' : 'bg-accent']">
       {{ content }}
     </v-card-text>
   </div>

@@ -9,8 +9,11 @@
         <ChatConversation :transcript="transcript" @update-conversations="updateConversations" />
       </v-col>
       <v-col cols="4">
-        <TriageSummary @update-sugestions="updateSuggestions"
-        @update-red-flag-terms="updateRedFlags" :conversations="conversations" />
+        <TriageSummary
+          @update-sugestions="updateSuggestions"
+          @update-red-flag-terms="updateRedFlags"
+          :conversations="conversations"
+        />
       </v-col>
     </v-row>
     <SuggestionAuditLog :suggestion="suggestion" :actualResponse="actualResponse" />
@@ -32,10 +35,10 @@ const redFlagTerms = ref({})
 
 const redFlagWords = computed(() => Object.values(redFlagTerms.value))
 
-const actualResponse = computed(() => { 
+const actualResponse = computed(() => {
   const lastMessage = conversations.value.at(-1)
 
-  if(lastMessage && ['NURSE', 'assistant'].includes(lastMessage.role)){
+  if (lastMessage && ['NURSE', 'assistant'].includes(lastMessage.role)) {
     return lastMessage.content
   }
 
@@ -55,10 +58,9 @@ const updateSuggestions = (suggestions) => {
 }
 
 const updateRedFlags = (flags) => {
-  console.log({flags})
+  console.log({ flags })
   flags.forEach((f) => {
     redFlagTerms.value[f] = f
-  }) 
+  })
 }
-
 </script>

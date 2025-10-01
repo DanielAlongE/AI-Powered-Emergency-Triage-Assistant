@@ -4,11 +4,10 @@ import { useRoute, useRouter } from 'vue-router'
 import HighlightTextarea from '@/components/HighlightTextarea.vue'
 
 const { redFlags } = defineProps({
-  redFlags: { type: Array, default: () => []}
+  redFlags: { type: Array, default: () => [] },
 })
 
 const emit = defineEmits(['update-transcript'])
-
 
 const router = useRouter()
 const route = useRoute()
@@ -17,7 +16,6 @@ const isListening = ref(false)
 const recognition = ref(null)
 
 const sessionId = route.params.sessionId
-
 
 watch(transcript, () => emit('update-transcript', transcript.value))
 
@@ -70,23 +68,25 @@ const stopListening = () => {
     recognition.value.stop()
   }
 }
-
 </script>
 
 <template>
-  <v-card class="elevation-2 mt-4"
-    height="400px"
-  >
+  <v-card class="elevation-2 mt-4" height="400px">
     <v-card-title>Speech Transcription</v-card-title>
-      <v-card-text>
-        <v-btn
-          @click="isListening ? stopListening() : startListening()"
-          :color="isListening ? 'red' : 'primary'"
-          class="mb-4"
-        >
-          {{ isListening ? 'Stop Listening' : 'Start Listening' }}
-        </v-btn>
-        <HighlightTextarea  v-model="transcript" label="Transcript" height="280px" :words-to-highlight="redFlags"></HighlightTextarea>
-      </v-card-text>
-    </v-card>
+    <v-card-text>
+      <v-btn
+        @click="isListening ? stopListening() : startListening()"
+        :color="isListening ? 'red' : 'primary'"
+        class="mb-4"
+      >
+        {{ isListening ? 'Stop Listening' : 'Start Listening' }}
+      </v-btn>
+      <HighlightTextarea
+        v-model="transcript"
+        label="Transcript"
+        height="280px"
+        :words-to-highlight="redFlags"
+      ></HighlightTextarea>
+    </v-card-text>
+  </v-card>
 </template>
