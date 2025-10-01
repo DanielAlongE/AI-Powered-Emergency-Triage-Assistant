@@ -9,7 +9,7 @@
         :color="isRecording ? 'red' : 'primary'"
         class="mb-4"
       >
-        {{ isRecording ? 'Stop Recording' : 'Start Recording' }}
+        {{ isRecording ? 'Stop Listening' : 'Start Listening' }}
       </v-btn>
       <HighlightTextarea  v-model="transcript" label="Transcript" height="280px" :words-to-highlight="redFlags"></HighlightTextarea>
     </v-card-text>
@@ -25,7 +25,6 @@ const { redFlags } = defineProps({
   redFlags: { type: Array, default: () => []}
 })
 
-console.log({redFlags})
 const emit = defineEmits(['update-transcript'])
 
 const apiUrl = inject('$apiUrl')
