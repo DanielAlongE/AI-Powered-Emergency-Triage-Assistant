@@ -11,7 +11,7 @@
       >
         {{ isRecording ? 'Stop Recording' : 'Start Recording' }}
       </v-btn>
-      <HighlightTextarea  v-model="transcript" label="Transcript" height="280px" :words-to-highlight="['ache', 'breathe', 'bleed', 'pain']"></HighlightTextarea>
+      <HighlightTextarea  v-model="transcript" label="Transcript" height="280px" :words-to-highlight="redFlags"></HighlightTextarea>
     </v-card-text>
   </v-card>
 </template>
@@ -21,6 +21,11 @@ import { ref, inject, markRaw, onUnmounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import HighlightTextarea from '@/components/HighlightTextarea.vue'
 
+const { redFlags } = defineProps({
+  redFlags: { type: Array, default: () => []}
+})
+
+console.log({redFlags})
 const emit = defineEmits(['update-transcript'])
 
 const apiUrl = inject('$apiUrl')
