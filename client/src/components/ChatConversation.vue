@@ -2,7 +2,12 @@
   <v-card class="elevation-2 mt-4" height="400px">
     <v-card-title>Conversation</v-card-title>
     <v-card-text>
-      <div ref="scrollContainer" class="scroll-container">
+      <div v-if="messages.length === 0 && !loading" class="text-center py-8">
+        <v-icon size="64" color="grey">mdi-chat-outline</v-icon>
+        <p class="mt-2">No conversation yet</p>
+        <p class="text-caption">Start speaking to begin a conversation</p>
+      </div>
+      <div v-else ref="scrollContainer" class="scroll-container">
         <ChatBubble
           v-for="(msg, index) in messages"
           :key="index"
