@@ -1,0 +1,133 @@
+# Multi-stage build for AI-Powered Emergency Triage Assistant
+# GPU-enabled deployment for Ollama local inference
+# Untested!
+# Server needs to have access to an NVIDIA GPU and the NVIDIA Container Toolkit installed
+
+FROM nvidia/cuda:11.8.0-cudnn8-runtime-ubuntu22.04 as base
+
+# Set environment variables
+ENV DEBIAN_FRONTEND=noninteractive \
+    PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1
+
+# Install Python and system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3.11 \
+    python3.11-dev \
+    python3-pip \
+    build-essential \
+    curl \
+    git \
+    libgomp1 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create symlink for python
+RUN ln -s /usr/bin/python3.11 /usr/bin/python
+
+WORKDIR /build
+
+# Install Ollama
+RUN curl -fsSL https://ollama.com/install.sh | sh
+
+# Install poetry
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir poetry==1.8.3
+
+# Configure poetry
+ENV POETRY_NO_INTERACTION=1 \
+    POETRY_VIRTUALENVS_IN_PROJECT=1 \
+    POETRY_VIRTUALENVS_CREATE=1 \
+    POETRY_CACHE_DIR=/tmp/poetry_cache
+
+# Copy dependency files (leverage Docker cache)
+COPY pyproject.toml poetry.lock* ./
+
+# Install all dependencies, could probably be optimized
+# by excluding gpu dependencies if not needed
+RUN poetry lock --no-update && \
+    poetry install --no-root && \
+    rm -rf $POETRY_CACHE_DIR
+
+# Production image
+FROM nvidia/cuda:11.8.0-cudnn8-runtime-ubuntu22.04
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONPATH=/app/src
+
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3.11 \
+    libgomp1 \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create symlink for python
+RUN ln -s /usr/bin/python3.11 /usr/bin/python
+
+WORKDIR /app
+
+# Copy installed packages (virtualenv) and Ollama from builder
+COPY --from=base /build/.venv /app/.venv
+COPY --from=base /usr/bin/ollama /usr/bin/ollama
+
+# Set PATH to use virtualenv
+ENV PATH="/app/.venv/bin:$PATH" \
+    VIRTUAL_ENV="/app/.venv"
+
+# Copy application code
+COPY src/ ./src/
+COPY data/ ./data/
+COPY config/ ./config/
+
+# Create directories for persistent data
+RUN mkdir -p /app/data/chroma_ollama /app/data/sessions /root/.ollama/models
+
+# Expose ports
+EXPOSE 8000 11434
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD python -c "import httpx; httpx.get('http://localhost:8000/')" || exit 1
+
+# Startup script to run both Ollama and FastAPI
+COPY <<EOF /app/start.sh
+#!/bin/bash
+set -e
+
+# Start Ollama in background
+ollama serve &
+OLLAMA_PID=\$!
+
+# Wait for Ollama to be ready
+echo "Waiting for Ollama to start..."
+sleep 5
+
+# Pull default model if specified
+if [ ! -z "\${OLLAMA_DEFAULT_MODEL}" ]; then
+    echo "Pulling Ollama model: \${OLLAMA_DEFAULT_MODEL}"
+    ollama pull \${OLLAMA_DEFAULT_MODEL} || true
+fi
+
+if [ ! -z "\${OLLAMA_EMBEDDING_MODEL}" ]; then
+    echo "Pulling Ollama embedding model: \${OLLAMA_EMBEDDING_MODEL}"
+    ollama pull \${OLLAMA_EMBEDDING_MODEL} || true
+fi
+
+# Start FastAPI application
+echo "Starting FastAPI application..."
+uvicorn app.main:app --host 0.0.0.0 --port 8000 &
+UVICORN_PID=\$!
+
+# Wait for any process to exit
+wait -n
+
+# Exit with status of process that exited first
+exit \$?
+EOF
+
+RUN chmod +x /app/start.sh
+
+# Run startup script
+CMD ["/app/start.sh"]
