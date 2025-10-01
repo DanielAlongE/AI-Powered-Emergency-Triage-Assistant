@@ -86,7 +86,7 @@ onMounted(() => {
     <v-card-title>Existing Sessions</v-card-title>
     <v-card-text>
       <v-list v-if="sessions.length > 0">
-        <v-list-item v-for="session in sessions" :key="session.id" @click="router.push(`/vosk/${session.id}`)">
+        <v-list-item v-for="session in sessions" :key="session.id" @click="router.push(`/native/${session.id}`)">
             <v-list-item-title>{{ session.name }}</v-list-item-title>
             <v-list-item-subtitle>Created: {{ new Date(session.created_at).toLocaleString() }}</v-list-item-subtitle>
         </v-list-item>
