@@ -8,6 +8,11 @@
 import json
 import ollama
 
+
+MODEL_LLAMA_3 = 'llama3.2'
+MODEL_GEMMA_3 = 'gemma3:4b'
+MODEL_GPT_OSS = 'gpt-oss:20b'
+
 RESPONSE_FORMAT = {
     'conversation': [
         {'role': 'assistant', 'content': 'I am the nurse!'},
@@ -16,27 +21,30 @@ RESPONSE_FORMAT = {
     }
 
 class ConversationAnalizer:
-    def __init__(self):
-        print("initialized ConversationAnalizer")
+    def __init__(self, model='gemma3:4b'):
+        self.model = model
+        print(f"initialized ConversationAnalizer using {model}")
 
     def chat(self, prompt: str):
+        args = {}
+        if self.model == MODEL_LLAMA_3:
+            args['format'] = "json"
+
         try:
             # Use the ollama.chat() method for a conversational approach
             response = ollama.chat(
-                model='llama3.2',
+                model=self.model,
                 messages=[
                     {'role': 'system', 'content': 'You are a helpful assistant.'},
                     {'role': 'user', 'content': prompt}
                 ],
-                options={
-                    'temperature': 0.7,
-                },
-                format = "json"
+                **args
             )
 
             # Extract the model's response
-            # analysis = response['message']['content'].strip()
-            analysis = response.message.content
+            analysis = response.message.content.strip()
+            # cleanup the response from gpt-oss:20b
+            analysis = analysis.replace('```json', '').replace('```', '')
 
             try:
                 return json.loads(analysis)
@@ -51,8 +59,9 @@ class ConversationAnalizer:
     def analyze(self, transcript: str):
         prompt = f"""
         You are a helpful assistant specialized in medical conversation analysis. Your task is to analyze the following transcript of a conversation between a triage nurse and a patient.
+        The Nurse asks most of the questions about the symptoms the patient has. Correct obvious grammatical errors in the transcription.
         For each line of dialogue, you must identify the speaker as either "NURSE" or "PATIENT".
-        
+        Do not generate any other prediction based on the context supplied.
         Transcript:
         {transcript}
         

@@ -3,8 +3,6 @@ Concrete implementations of triage agents.
 """
 from .random_agent import RandomTriageAgent
 from .rule_based_agent import RuleBasedTriageAgent
-from .llm_agent import LLMTriageAgent
-from .hybrid_agent import HybridTriageAgent
 
 # New agent for RAG + OpenAI integration
 try:
@@ -14,6 +12,6 @@ except ImportError:
     HANDBOOK_RAG_AVAILABLE = False
 
 if HANDBOOK_RAG_AVAILABLE:
-    __all__ = ['RandomTriageAgent', 'RuleBasedTriageAgent', 'LLMTriageAgent', 'HybridTriageAgent', 'HandbookRagOpenAiAgent']
+    __all__ = ['RandomTriageAgent', 'RuleBasedTriageAgent', 'HandbookRagOpenAiAgent']
 else:
-    __all__ = ['RandomTriageAgent', 'RuleBasedTriageAgent', 'LLMTriageAgent', 'HybridTriageAgent']
+    __all__ = ['RandomTriageAgent', 'RuleBasedTriageAgent']

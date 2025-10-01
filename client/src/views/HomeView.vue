@@ -1,105 +1,105 @@
 <script setup>
-import { ref, onMounted } from 'vue'
-import ChatBubble from '@/components/ChatBubble.vue'
+import { ref, inject, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 
-const transcript = ref('')
-const isListening = ref(false)
-const recognition = ref(null)
-const messages = ref([])
+const apiUrl = inject('$apiUrl')
+
+const router = useRouter()
+
+const sessionName = ref('')
+const isSubmitting = ref(false)
+const showSnackbar = ref(false)
+const snackbarMessage = ref('')
+const snackbarColor = ref('error')
+const sessions = ref([])
+
+const submitSession = async () => {
+  if (!sessionName.value.trim()) return
+
+  isSubmitting.value = true
+  try {
+    const response = await fetch(`${apiUrl}/api/v1/sessions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ name: sessionName.value })
+    })
+    if (response.ok) {
+      sessionName.value = ''
+
+      const { id } = await response.json()
+      router.push(`/native/${id}`)
+
+    } else {
+      snackbarMessage.value = 'Failed to create session'
+      showSnackbar.value = true
+      isSubmitting.value = false
+    }
+  } catch {
+    snackbarMessage.value = 'Error submitting session'
+    showSnackbar.value = true
+    isSubmitting.value = false
+  }
+}
+
+const fetchSessions = async () => {
+  try {
+    const response = await fetch(`${apiUrl}/api/v1/sessions`)
+    if (response.ok) {
+      sessions.value = await response.json()
+    } else {
+      console.error('Failed to fetch sessions')
+    }
+  } catch (error) {
+    console.error('Error fetching sessions:', error)
+  }
+}
 
 onMounted(() => {
-  if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
-    recognition.value = new SpeechRecognition()
-    recognition.value.continuous = true
-    recognition.value.interimResults = true
-    recognition.value.lang = 'en-US'
-
-    recognition.value.onstart = () => {
-      isListening.value = true
-    }
-
-    recognition.value.onresult = (event) => {
-      let finalTranscript = ''
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        if (event.results[i].isFinal) {
-          finalTranscript += event.results[i][0].transcript
-        }
-      }
-      if (finalTranscript) {
-        transcript.value += finalTranscript + '\n'
-      }
-    }
-
-    recognition.value.onend = () => {
-      isListening.value = false
-    }
-
-    recognition.value.onerror = (event) => {
-      console.error('Speech recognition error:', event.error)
-      isListening.value = false
-    }
-  } else {
-    console.warn('Speech recognition not supported in this browser')
-  }
+  fetchSessions()
 })
-
-const startListening = () => {
-  if (recognition.value && !isListening.value) {
-    recognition.value.start()
-  }
-}
-
-const stopListening = () => {
-  if (recognition.value && isListening.value) {
-    recognition.value.stop()
-  }
-}
-
-const sendTranscript = async () => {
-  if (!transcript.value.trim()) return
-
-  try {
-    const response = await fetch('http://localhost:8000/api/conversation', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ transcript: transcript.value })
-    })
-    const { conversation } = await response.json()
-
-    messages.value = conversation
-
-
-  } catch (error) {
-    console.error('Error sending transcript:', error)
-  }
-}
 </script>
 
 <template>
-  <div>
-    <v-row>
-      <v-col cols="8">
-        <v-card class="elevation-5 mt-4">
-          <v-card-title>Speech Recognition</v-card-title>
-          <v-card-text>
-            <v-btn
-              @click="isListening ? stopListening() : startListening()"
-              :color="isListening ? 'red' : 'primary'"
-              class="mb-4"
-            >
-              {{ isListening ? 'Stop Listening' : 'Start Listening' }}
-            </v-btn>
-            <v-textarea v-model="transcript" label="Transcript" rows="4"></v-textarea>
-            <v-btn @click="sendTranscript" color="success" class="mt-2">Send Transcript</v-btn>
-          </v-card-text>
-        </v-card>
-      </v-col>
-      <v-col cols="4">
-        <v-card class="elevation-4">
-          <ChatBubble v-for="(msg, index) in messages" :key="index" :content="msg.content" :primary="msg.role == 'NURSE'" />
-        </v-card>
-      </v-col>
-    </v-row>
-  </div>
+  <v-card class="pa-4">
+    <v-card-title>Create new session</v-card-title>
+    <v-card-text>
+      <v-text-field
+        v-model="sessionName"
+        label="Session Name"
+        :input-style="{ fontWeight: 'bold' }"
+        required
+      ></v-text-field>
+      <v-btn
+        @click="submitSession"
+        :loading="isSubmitting"
+        :disabled="!sessionName.trim()"
+        color="primary"
+      >
+        Submit
+      </v-btn>
+    </v-card-text>
+  </v-card>
+
+  <v-card class="pa-4 mt-4">
+    <v-card-title>Existing Sessions</v-card-title>
+    <v-card-text>
+      <v-list v-if="sessions.length > 0">
+        <v-list-item v-for="session in sessions" :key="session.id" @click="router.push(`/vosk/${session.id}`)">
+            <v-list-item-title>{{ session.name }}</v-list-item-title>
+            <v-list-item-subtitle>Created: {{ new Date(session.created_at).toLocaleString() }}</v-list-item-subtitle>
+        </v-list-item>
+      </v-list>
+      <p v-else>No sessions found.</p>
+    </v-card-text>
+  </v-card>
+
+  <v-snackbar
+    v-model="showSnackbar"
+    :timeout="2000"
+    :color="snackbarColor"
+  >
+    {{ snackbarMessage }}
+  </v-snackbar>
 </template>

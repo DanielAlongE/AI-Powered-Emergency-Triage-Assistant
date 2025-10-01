@@ -1,5 +1,10 @@
 """
-Emergency triage agent using RAG + OpenAI for ESI assessment
+Similar to HandbookRagOpenAiAgent but using Ollama for local LLM inference instead of OpenAI.
+
+Differences from HandbookRagOpenAiAgent:
+    - Uses Ollama embeddings (nomic-embed-text) instead of OpenAI embeddings
+    - Retrieves from ChromaDB instance with Ollama embeddings
+    - Uses Ollama LLM for inference instead of OpenAI
 """
 
 import asyncio
@@ -8,8 +13,8 @@ from agents.base import BaseTriageAgent
 from models.esi_assessment import ESIAssessment, MedicalConversation
 from config import get_settings
 from logger import get_logger
-from services.openai_client import get_hosted_model_gateway
-from services.rag import get_protocol_rag
+from services.ollama_client import get_ollama_gateway
+from services.rag_ollama import get_protocol_rag_ollama
 from services.red_flags import RedFlag, RedFlagDetector
 
 logger = get_logger(__name__)
@@ -34,12 +39,12 @@ JSON_SCHEMA = {
                 },
             },
             "esi_level": {
-                "type": ["integer", "null"],
+                "type": "integer",
                 "minimum": 1,
                 "maximum": 5,
             },
-            "confidence": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
-            "rationale": {"type": ["string", "null"]},
+            "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+            "rationale": {"type": "string"},
             "escalation_required": {"type": "boolean"},
         },
         "required": ["follow_up_questions", "escalation_required"],
@@ -48,10 +53,12 @@ JSON_SCHEMA = {
 }
 
 
-class HandbookRagOpenAiAgent(BaseTriageAgent):
+class HandbookRagOllamaAgent(BaseTriageAgent):
     """
-    Emergency triage agent that uses RAG, red-flag detection, and OpenAI
+    Emergency triage agent that uses RAG, red-flag detection, and Ollama
     to assess conversations and provide ESI recommendations.
+
+    Uses local Ollama models for both LLM inference and embeddings.
     """
 
     def __init__(self, name: str, config: Dict[str, Any] = None):
@@ -63,19 +70,22 @@ class HandbookRagOpenAiAgent(BaseTriageAgent):
         if configure_logging:
             configure_logging(settings.log_level)
 
-        # Initialize components (same as ReasoningEngine)
-        self._gateway = get_hosted_model_gateway()
-        self._rag = get_protocol_rag()
+        # Initialize components
+        ollama_host = config.get('ollama_host') if config else None
+        inference_mode = config.get('inference_mode') if config else None
+        self._gateway = get_ollama_gateway(host=ollama_host, inference_mode=inference_mode)
+        self._rag = get_protocol_rag_ollama()
         self._red_flag_detector = RedFlagDetector(settings.red_flag_lexicon_path)
         self._max_questions = settings.max_follow_up_questions
 
-        # Agent-specific configuration
-        self.temperature = config.get('temperature', 0.2)
+        # Agent specific configuration
+        self.temperature = config.get('temperature', 0.3)
         self.max_questions = config.get('max_questions', 3)
-        self.model_override = config.get('model_override', 'gpt-4o')
+        self.model_override = config.get('model_override', config.get('model', 'gemma2:2b'))
 
-        logger.info("handbook_rag_openai_agent_initialized",
+        logger.info("handbook_rag_ollama_agent_initialized",
                    name=name,
+                   model=self.model_override,
                    max_questions=self._max_questions,
                    temperature=self.temperature)
 
@@ -104,7 +114,7 @@ class HandbookRagOpenAiAgent(BaseTriageAgent):
 
     async def _generate_assessment(self, conversation: MedicalConversation) -> ESIAssessment:
         """
-        Generate triage assessment
+        Generate triage assessment using Ollama
         """
         # Extract conversation text
         combined_text = conversation.get_full_text()
@@ -121,14 +131,15 @@ class HandbookRagOpenAiAgent(BaseTriageAgent):
         prompt = self._build_prompt(combined_text, red_flag_terms, rag_context)
 
         logger.info(
-            "handbook_agent_prompt",
+            "handbook_ollama_agent_prompt",
             red_flags=red_flag_terms,
             rag_docs=len(rag_docs),
             transcript_chars=len(combined_text),
+            model=self.model_override,
             agent=self.name
         )
 
-        # Call OpenAI
+        # Call Ollama
         response = await self._gateway.stream_completion(
             prompt=prompt,
             json_schema=JSON_SCHEMA,
@@ -136,7 +147,7 @@ class HandbookRagOpenAiAgent(BaseTriageAgent):
             model_override=self.model_override
         )
 
-        logger.info("handbook_agent_response_received", agent=self.name)
+        logger.info("handbook_ollama_agent_response_received", agent=self.name, model=self.model_override)
 
         # Convert to ESIAssessment
         return self._to_esi_assessment(response, red_flag_matches)
@@ -147,7 +158,7 @@ class HandbookRagOpenAiAgent(BaseTriageAgent):
         """
         instructions = [
             "You are an emergency department triage copilot assisting a nurse.",
-            "Summarize the key symptoms, identify missing critical questions, and estimate an ESI level when possible.",
+            "Estimate an ESI level with the available information and identify follow up questions if any.",
             "Use the provided protocol context and red-flag list to inform your judgment.",
             "",
             "ESI Level Guidelines:",
@@ -180,7 +191,13 @@ class HandbookRagOpenAiAgent(BaseTriageAgent):
             "• Potential for clinical deterioration based on mechanism and symptoms",
             "• Age-appropriate assessment of severity",
             "",
-            "Respond with raw JSON only, matching the schema keys: follow_up_questions (list of objects), esi_level, confidence, rationale, escalation_required.",
+            "IMPORTANT: Respond with valid JSON only, matching the schema. Include:",
+            "- follow_up_questions: array of question objects",
+            "- esi_level: integer 1-5 (REQUIRED - never null)",
+            "- confidence: number 0-1 (REQUIRED - never null)",
+            "- rationale: string explanation (REQUIRED)",
+            "- escalation_required: boolean (REQUIRED)",
+            "",
             f"The follow_up_questions array should contain at most {self.max_questions} items, each with question, priority, rationale, escalation.",
         ]
         prompt_sections = [
@@ -212,9 +229,23 @@ class HandbookRagOpenAiAgent(BaseTriageAgent):
         escalation_required = False
 
         if isinstance(llm_response, dict):
-            esi_level = llm_response.get("esi_level")
+            raw_esi_level = llm_response.get("esi_level")
+            # Handle None/null esi_level with fallback
+            if raw_esi_level is not None:
+                esi_level = raw_esi_level
+            else:
+                # Fallback when model returns null - use conservative ESI 3
+                esi_level = 3
+                logger.warning("esi_level_null_fallback", agent=self.name, model=self.model_override)
+
             rationale = llm_response.get("rationale")
             escalation_required = bool(llm_response.get("escalation_required", False))
+
+            # Add note about fallback to rationale
+            if raw_esi_level is None and rationale:
+                rationale += " (ESI level defaulted to 3 due to model uncertainty)"
+            elif raw_esi_level is None:
+                rationale = "ESI level defaulted to 3 due to model uncertainty"
 
         # Extract follow-up questions from LLM response
         follow_up_questions = []
