@@ -1,10 +1,11 @@
 <script setup>
 defineProps({ content: String, primary: Boolean })
+
 </script>
 
 <template>
   <div class="container">
-    <v-card-text :class="['bubble', { primary: primary }]">
+    <v-card-text :class="['bubble', primary ? 'bg-primary primary' : 'bg-accent' ]">
       {{ content }}
     </v-card-text>
   </div>
@@ -18,14 +19,10 @@ defineProps({ content: String, primary: Boolean })
 }
 
 .bubble {
-  background-color: #f7f7f8;
-  color: #000;
   max-width: 80%;
 }
 
 .primary {
-  background-color: #0b93f6;
-  color: #000;
   overflow-x: hidden;
   max-width: 70%;
   margin-left: auto;
