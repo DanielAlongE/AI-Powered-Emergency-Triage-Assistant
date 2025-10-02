@@ -27,7 +27,7 @@
 import { computed, inject, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 
-const { conversations, summaryBase } = defineProps({
+const { conversations, summaryBase, currentResponse } = defineProps({
   conversations: {
     type: Array,
     default: () => [],
@@ -35,6 +35,10 @@ const { conversations, summaryBase } = defineProps({
   summaryBase: {
     type: Object,
     default: () => {}
+  },
+  currentResponse: {
+    type: String,
+    default: ''
   }
 })
 
@@ -56,7 +60,7 @@ const tableItems = computed(() => {
 })
 
 const fetchSummary = async () => {
-  if (!Array.isArray(conversations) || !conversations.length) return
+  if (currentResponse || !Array.isArray(conversations) || !conversations.length) return
 
   try {
     loading.value = true
