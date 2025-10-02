@@ -36,7 +36,7 @@
         />
       </v-col>
     </v-row>
-    <SuggestionAuditLog :suggestion="suggestion" :actualResponse="actualResponse" />
+    <SuggestionAuditLog :suggestion="suggestion === DEFAULT_SUGGESTION ? '': suggestion" :actualResponse="actualResponse" />
     <v-snackbar v-model="showSnackbar" :timeout="5000">
       {{ snackbarMessage }}
       <template v-slot:action="{ attrs }">
@@ -66,6 +66,8 @@ const safeJsonParse = (str, defaultObject = {}) => {
     return defaultObject
   }
 }
+
+const DEFAULT_SUGGESTION = 'Start by introducing yourself as the nurse!'
 
 const route = useRoute()
 const speechModel = route.params.speechModel
@@ -112,7 +114,7 @@ const updateRedFlags = (flags) => {
 
 onMounted(async () => {
   if (!transcript.value) {
-    suggestion.value = 'Start by introducing yourself as the nurse!'
+    suggestion.value = DEFAULT_SUGGESTION
   }
 
   try {
