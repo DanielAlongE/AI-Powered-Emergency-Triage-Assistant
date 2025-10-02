@@ -95,9 +95,9 @@ async def triage_summary(request: TriageSummaryRequest, session_id: Optional[UUI
         
 
 # given a transcription text, return an array of chat like conversation between the nurse and patient
-# we have the option of either using the converstation_analizer based on llama3.2
+# we have the option of either using the conversation_analizer based on llama3.2
 @router.post("/v1/conversation", response_model=ConversationResponse)
-async def converstaion(request: ConversationRequest, session_id: Optional[UUID] = None, db: DBSession = Depends(get_db)) -> ConversationResponse:
+async def conversation(request: ConversationRequest, session_id: Optional[UUID] = None, db: DBSession = Depends(get_db)) -> ConversationResponse:
     try:
         model = MODEL_GPT_4O if get_settings().online_mode else MODEL_GEMMA_3
         conversation_result = ConversationAnalizer(model).analyze(request.transcript)
@@ -107,14 +107,14 @@ async def converstaion(request: ConversationRequest, session_id: Optional[UUID] 
             session = db.query(SessionModel).filter(SessionModel.id == session_id).first()
             if session:
                 session.transcript = request.transcript
-                session.conversation = json.dumps(conversation_result.model_dump(mode='json'))
+                session.conversation = json.dumps(conversation_result)
                 session.updated_at = datetime.now(timezone.utc)
                 db.commit()
 
-        return conversation_result
+        return ConversationResponse(**conversation_result)
     except Exception as e:
         print(e)
-        return {'converstaion': []}
+        return ConversationResponse(conversation=[])
 
 
 # Session CRUD endpoints
@@ -144,6 +144,7 @@ async def update_session(session_id: UUID, session_update: SessionUpdate, db: DB
         raise HTTPException(status_code=404, detail="Session not found")
     for key, value in session_update.model_dump(exclude_unset=True).items():
         setattr(session, key, value)
+    session.updated_at = datetime.now(timezone.utc)
     db.commit()
     db.refresh(session)
     return session
