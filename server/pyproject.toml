@@ -46,7 +46,14 @@ dependencies = [
 ]
 
 [tool.poetry]
-package-mode = false
+packages = [
+    {include = "app", from = "src"},
+    {include = "models", from = "src"},
+    {include = "playground", from = "src"},
+    {include = "services", from = "src"},
+    {include = "agents", from = "src"},
+    {include = "utilities", from = "src"}
+    ]
 
 [tool.poetry.scripts]
 main = "main:main"
