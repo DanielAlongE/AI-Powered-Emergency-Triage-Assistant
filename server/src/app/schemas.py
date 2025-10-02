@@ -36,3 +36,22 @@ class SessionResponse(BaseModel):
 
 class SessionUpdate(BaseModel):
     name: Optional[str] = None
+
+class AuditLogCreate(BaseModel):
+    session_id: UUID
+    suggestion: str
+    response: str
+    similarity: int
+
+class AuditLogResponse(BaseModel):
+    id: UUID
+    session_id: UUID
+    suggestion: str
+    response: str
+    similarity: int
+    created_at: datetime
+
+class AuditLogUpdate(BaseModel):
+    suggestion: Optional[str] = None
+    response: Optional[str] = None
+    similarity: Optional[int] = None
