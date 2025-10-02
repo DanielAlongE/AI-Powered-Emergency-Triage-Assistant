@@ -4,9 +4,7 @@
   <v-card class="elevation-2 mt-4">
     <v-card-title>Audit Log</v-card-title>
     <v-data-table :items="tableItems" :headers="headers" :loading="loading">
-      <template v-slot:item.similarity="{ item }">
-        {{ item.similarity }}%
-      </template>
+      <template v-slot:item.similarity="{ item }"> {{ item.similarity }}% </template>
       <template v-slot:item.created_at="{ item }">
         {{ new Date(item.created_at).toLocaleString() }}
       </template>
@@ -60,13 +58,13 @@ const createAuditLog = async (suggestion, response, sessionId) => {
       session_id: sessionId,
       suggestion: suggestion,
       response: response,
-      similarity: 0 // Default similarity, can be calculated later if needed
+      similarity: 0, // Default similarity, can be calculated later if needed
     }
 
     const res = await fetch(`${apiUrl}/api/v1/audit-logs`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(auditLogData)
+      body: JSON.stringify(auditLogData),
     })
 
     if (res.ok) {
@@ -80,13 +78,16 @@ const createAuditLog = async (suggestion, response, sessionId) => {
   }
 }
 
-watch(() => [suggestion, actualResponse], ([newSuggestion, actualResponse]) => {
-  console.log({newSuggestion, actualResponse})
-  if (newSuggestion && actualResponse && sessionId && !suggestionsSet.value.has(newSuggestion)) {
-    suggestionsSet.value.add(newSuggestion)
-    createAuditLog(newSuggestion, actualResponse, sessionId)
-  }
-})
+watch(
+  () => [suggestion, actualResponse],
+  ([newSuggestion, actualResponse]) => {
+    console.log({ newSuggestion, actualResponse })
+    if (newSuggestion && actualResponse && sessionId && !suggestionsSet.value.has(newSuggestion)) {
+      suggestionsSet.value.add(newSuggestion)
+      createAuditLog(newSuggestion, actualResponse, sessionId)
+    }
+  },
+)
 
 onMounted(fetchAuditLogs)
 </script>

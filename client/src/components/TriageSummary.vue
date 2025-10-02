@@ -4,8 +4,14 @@
     <v-table>
       <tbody>
         <tr>
-          <td>ESI Level <v-icon @click="showDialog = true" size="small" class="ml-1">mdi-information-outline</v-icon></td>
-          <td>{{ summary.esi_level }}
+          <td>
+            ESI Level
+            <v-icon @click="showDialog = true" size="small" class="ml-1"
+              >mdi-information-outline</v-icon
+            >
+          </td>
+          <td>
+            {{ summary.esi_level }}
             <SeverityLevelBadge v-if="summary.esi_level" :level="summary.esi_level" />
           </td>
         </tr>
@@ -29,13 +35,29 @@
     <v-card>
       <v-card-title>About ESI Levels</v-card-title>
       <v-card-text>
-        <p>The Emergency Severity Index (ESI) is a five-level emergency department triage algorithm that provides clinically relevant stratification of patients into five groups from 1 (most urgent) to 5 (least urgent) on the basis of acuity and resource needs.</p>
+        <p>
+          The Emergency Severity Index (ESI) is a five-level emergency department triage algorithm
+          that provides clinically relevant stratification of patients into five groups from 1 (most
+          urgent) to 5 (least urgent) on the basis of acuity and resource needs.
+        </p>
         <ul>
-          <li><strong>Level 1:</strong> Immediate, life-saving intervention required without delay.</li>
-          <li><strong>Level 2:</strong> High risk situation, requires immediate assessment and intervention.</li>
-          <li><strong>Level 3:</strong> Urgent, but stable; requires assessment and treatment within 30 minutes.</li>
-          <li><strong>Level 4:</strong> Less urgent; requires assessment and treatment within 1 hour.</li>
-          <li><strong>Level 5:</strong> Least urgent; can wait to be seen in the treatment area.</li>
+          <li>
+            <strong>Level 1:</strong> Immediate, life-saving intervention required without delay.
+          </li>
+          <li>
+            <strong>Level 2:</strong> High risk situation, requires immediate assessment and
+            intervention.
+          </li>
+          <li>
+            <strong>Level 3:</strong> Urgent, but stable; requires assessment and treatment within
+            30 minutes.
+          </li>
+          <li>
+            <strong>Level 4:</strong> Less urgent; requires assessment and treatment within 1 hour.
+          </li>
+          <li>
+            <strong>Level 5:</strong> Least urgent; can wait to be seen in the treatment area.
+          </li>
         </ul>
       </v-card-text>
       <v-card-actions>
@@ -48,9 +70,7 @@
   <v-snackbar v-model="snackbar" :timeout="6000">
     {{ snackbarMessage }}
     <template v-slot:action="{ attrs }">
-      <v-btn color="blue" text v-bind="attrs" @click="snackbar = false">
-        Close
-      </v-btn>
+      <v-btn color="blue" text v-bind="attrs" @click="snackbar = false"> Close </v-btn>
     </template>
   </v-snackbar>
 </template>
@@ -66,14 +86,13 @@ const { conversations, summaryBase, currentResponse } = defineProps({
   },
   summaryBase: {
     type: Object,
-    default: () => {}
+    default: () => {},
   },
   currentResponse: {
     type: String,
-    default: ''
-  }
+    default: '',
+  },
 })
-
 
 const emit = defineEmits(['update-sugestions', 'update-red-flag-terms'])
 
@@ -86,7 +105,6 @@ const snackbar = ref(false)
 const snackbarMessage = ref('')
 
 const sessionId = route.params.sessionId
-
 
 const tableItems = computed(() => {
   return conversations.map((conv) => ({
@@ -110,7 +128,7 @@ const fetchSummary = async () => {
     if (data.rationale.includes('Error')) return
 
     summary.value = data
-    if(!currentResponse){
+    if (!currentResponse) {
       emit('update-sugestions', data.follow_up_questions)
     }
     emit('update-red-flag-terms', data.red_flag_terms)
@@ -123,10 +141,12 @@ const fetchSummary = async () => {
   }
 }
 
-
-watch(() => summaryBase, () => {
-  summary.value = summaryBase
-})
+watch(
+  () => summaryBase,
+  () => {
+    summary.value = summaryBase
+  },
+)
 
 watch(() => conversations, fetchSummary)
 </script>

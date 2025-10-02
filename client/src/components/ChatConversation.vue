@@ -22,9 +22,7 @@
   <v-snackbar v-model="snackbar" :timeout="6000">
     {{ snackbarMessage }}
     <template v-slot:action="{ attrs }">
-      <v-btn color="blue" text v-bind="attrs" @click="snackbar = false">
-        Close
-      </v-btn>
+      <v-btn color="blue" text v-bind="attrs" @click="snackbar = false"> Close </v-btn>
     </template>
   </v-snackbar>
 </template>
@@ -41,8 +39,8 @@ const props = defineProps({
   },
   conversationBase: {
     type: Array,
-    default: () => []
-  }
+    default: () => [],
+  },
 })
 
 const apiUrl = inject('$apiUrl')
@@ -56,7 +54,6 @@ const snackbar = ref(false)
 const snackbarMessage = ref('')
 
 const sessionId = route.params.sessionId
-
 
 // Function to scroll to bottom
 const scrollToBottom = () => {
@@ -107,9 +104,12 @@ const debouncedSendTranscript = debounce(sendTranscript, 1000)
 // Watch for transcript changes and call debounced function
 watch(() => props.transcript, debouncedSendTranscript)
 
-watch(() => props.conversationBase, () => {
-  messages.value = props.conversationBase
-})
+watch(
+  () => props.conversationBase,
+  () => {
+    messages.value = props.conversationBase
+  },
+)
 </script>
 
 <style>

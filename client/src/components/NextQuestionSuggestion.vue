@@ -14,11 +14,15 @@ const props = defineProps({ suggestion: String })
 const isGrey = ref(false)
 let timeoutId = null
 
-watch(() => props.suggestion, () => {
-  isGrey.value = false
-  if (timeoutId) clearTimeout(timeoutId)
-  timeoutId = setTimeout(() => {
-    isGrey.value = true
-  }, 60000)
-}, { immediate: true })
+watch(
+  () => props.suggestion,
+  () => {
+    isGrey.value = false
+    if (timeoutId) clearTimeout(timeoutId)
+    timeoutId = setTimeout(() => {
+      isGrey.value = true
+    }, 60000)
+  },
+  { immediate: true },
+)
 </script>

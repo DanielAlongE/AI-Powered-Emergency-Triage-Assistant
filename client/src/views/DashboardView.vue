@@ -20,7 +20,11 @@
         />
       </v-col>
       <v-col cols="4">
-        <ChatConversation :transcript="transcript" :conversationBase="conversations" @update-conversations="updateConversations" />
+        <ChatConversation
+          :transcript="transcript"
+          :conversationBase="conversations"
+          @update-conversations="updateConversations"
+        />
       </v-col>
       <v-col cols="4">
         <TriageSummary
@@ -36,9 +40,7 @@
     <v-snackbar v-model="showSnackbar" :timeout="5000">
       {{ snackbarMessage }}
       <template v-slot:action="{ attrs }">
-        <v-btn color="blue" text v-bind="attrs" @click="showSnackbar = false">
-          Close
-        </v-btn>
+        <v-btn color="blue" text v-bind="attrs" @click="showSnackbar = false"> Close </v-btn>
       </template>
     </v-snackbar>
   </div>
@@ -54,16 +56,16 @@ import TriageSummary from '@/components/TriageSummary.vue'
 import NextQuestionSuggestion from '@/components/NextQuestionSuggestion.vue'
 import SuggestionAuditLog from '@/components/SuggestionAuditLog.vue'
 
-const safeJsonParse = (str, defaultObject={}) => {
-  if(!str) return defaultObject
+const safeJsonParse = (str, defaultObject = {}) => {
+  if (!str) return defaultObject
 
   try {
-    return JSON.parse(str);
+    return JSON.parse(str)
   } catch (error) {
-    console.error('Invalid JSON string:', error);
-    return defaultObject;
+    console.error('Invalid JSON string:', error)
+    return defaultObject
   }
-};
+}
 
 const route = useRoute()
 const speechModel = route.params.speechModel
@@ -109,7 +111,7 @@ const updateRedFlags = (flags) => {
 }
 
 onMounted(async () => {
-  if(!transcript.value){
+  if (!transcript.value) {
     suggestion.value = 'Start by introducing yourself as the nurse!'
   }
 
@@ -119,7 +121,7 @@ onMounted(async () => {
       const sessionData = await response.json()
       transcript.value = sessionData.transcript || ''
       summary.value = safeJsonParse(sessionData.summary)
-      conversations.value = safeJsonParse(sessionData.conversation)["conversation"] || []
+      conversations.value = safeJsonParse(sessionData.conversation)['conversation'] || []
 
       console.log(conversations.value, sessionData)
     } else {

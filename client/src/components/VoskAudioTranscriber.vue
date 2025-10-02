@@ -55,15 +55,17 @@ onUnmounted(() => {
 })
 
 watch(transcript, () => {
-  if(transcript.value === transcriptBase) return
+  if (transcript.value === transcriptBase) return
 
   emit('update-transcript', transcript.value)
 })
 
-watch(() => transcriptBase, () => {
-  transcript.value = transcriptBase
-})
-
+watch(
+  () => transcriptBase,
+  () => {
+    transcript.value = transcriptBase
+  },
+)
 
 const checkSilence = () => {
   if (!analyser.value || !isRecording.value) return
