@@ -1,5 +1,5 @@
 <template>
-<v-chip :color="item.color" variant="outlined">
+<v-chip :color="item.color" variant="flat">
   {{ item.label }}
 </v-chip>
     
@@ -7,7 +7,10 @@
 <script setup>
 import { computed } from 'vue';
 
-const { level } = defineProps('level')
+const { level } = defineProps({level: {
+    type: String,
+    default: ''
+}})
 
 const items = [
     {key:'1', color:'red', label:'Immediate'},
@@ -18,7 +21,7 @@ const items = [
 ]
 
 const item = computed(() => {
-    const currentItem = items.find((item) => item.key === level)
+    const currentItem = items.find((item) => item.key === level.toString())
     if(currentItem) return currentItem
 
     return items.at(-1)
