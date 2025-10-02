@@ -39,6 +39,9 @@ class SessionResponse(BaseModel):
 
 class SessionUpdate(BaseModel):
     name: Optional[str] = None
+    transcript: Optional[str] = None
+    conversation: Optional[str] = None
+    summary: Optional[str] = None
 
 class AuditLogCreate(BaseModel):
     session_id: UUID
