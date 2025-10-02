@@ -161,7 +161,11 @@ async def delete_session(session_id: UUID, db: DBSession = Depends(get_db)):
 # AuditLog CRUD endpoints
 @router.post("/v1/audit-logs", response_model=AuditLogResponse)
 async def create_audit_log(audit_log: AuditLogCreate, db: DBSession = Depends(get_db)):
-    db_audit_log = AuditLog(**audit_log.model_dump())
+    model = MODEL_GPT_4O if get_settings().online_mode else MODEL_GEMMA_3
+    result = ConversationAnalizer(model).similarity_analysis(audit_log.suggestion, audit_log.response)
+    similarity = result.get('similarity', 5)
+    
+    db_audit_log = AuditLog(**audit_log.model_dump(), similarity=similarity)
     db.add(db_audit_log)
     db.commit()
     db.refresh(db_audit_log)
