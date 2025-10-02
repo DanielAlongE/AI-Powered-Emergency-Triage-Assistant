@@ -6,6 +6,7 @@
 # 2. Open a terminal and run: ollama run llama3
 # 3. Ensure the 'ollama' Python library is installed: pip install ollama
 import json
+from typing import Optional
 import ollama
 from openai import OpenAI
 from config import get_settings
@@ -22,13 +23,14 @@ RESPONSE_FORMAT = {
         {'role': 'user', 'content': 'I am the patient.'},
         ]
     }
+SIMILARITY_FORMAT = {'similarity': 20}
 
 class ConversationAnalizer:
     def __init__(self, model='gemma3:4b'):
         self.model = model
         print(f"initialized ConversationAnalizer using {model}")
 
-    def chat_with_ollama(self, prompt: str):
+    def chat_with_ollama(self, prompt: str, fallback_response: Optional[dict]):
         args = {}
         if self.model == MODEL_LLAMA_3:
             args['format'] = "json"
@@ -52,13 +54,13 @@ class ConversationAnalizer:
             try:
                 return json.loads(analysis)
             except json.JSONDecodeError:
-                return {'conversation':[]}
+                return fallback_response if fallback_response else {'conversation':[]}
 
         except Exception as e:
             print(f"An error occurred with Ollama: {e}")
             return "Analysis failed due to an error. Ensure Ollama is running and the model is available."
 
-    def chat_with_openai(self, prompt: str):
+    def chat_with_openai(self, prompt: str, fallback_response: Optional[dict]):
         settings = get_settings()
         if not settings.openai_api_key:
             return "OpenAI API key not configured"
@@ -82,17 +84,17 @@ class ConversationAnalizer:
             try:
                 return json.loads(analysis)
             except json.JSONDecodeError:
-                return {'conversation':[]}
+                return fallback_response if fallback_response else {'conversation':[]}
 
         except Exception as e:
             print(f"An error occurred with OpenAI: {e}")
             return "Analysis failed due to an error. Ensure OpenAI API key is configured and valid."
 
-    def chat(self, prompt: str):
+    def chat(self, prompt: str, fallback_response: Optional[dict] = None):
         if self.model == MODEL_GPT_4O:
-            return self.chat_with_openai(prompt)
+            return self.chat_with_openai(prompt, fallback_response)
         else:
-            return self.chat_with_ollama(prompt)
+            return self.chat_with_ollama(prompt, fallback_response)
 
         
 
@@ -110,3 +112,15 @@ class ConversationAnalizer:
         """
 
         return self.chat(prompt)
+
+    def similarity_analysis(self, suggestion: str, response: str):
+        prompt = f"""
+        You are a helpful assistant specialized comparing two lines of text to give a mathematical percentage of how similar their meanings are.
+        text 1: {suggestion}
+        text 2: {response}
+        
+        Format your response strictly as JSON:
+        {SIMILARITY_FORMAT}
+        """
+
+        return self.chat(prompt, {'similarity': 5})
