@@ -6,7 +6,7 @@
         <tr>
           <td>ESI Level <v-icon @click="showDialog = true" size="small" class="ml-1">mdi-information-outline</v-icon></td>
           <td>{{ summary.esi_level }}
-            <SeverityLevelBadge :level="summary.esi_level" />
+            <SeverityLevelBadge v-if="summary.esi_level" :level="summary.esi_level" />
           </td>
         </tr>
         <tr>
@@ -96,7 +96,7 @@ const tableItems = computed(() => {
 })
 
 const fetchSummary = async () => {
-  if (currentResponse || !Array.isArray(conversations) || !conversations.length) return
+  if (!Array.isArray(conversations) || !conversations.length) return
 
   try {
     loading.value = true
@@ -110,7 +110,9 @@ const fetchSummary = async () => {
     if (data.rationale.includes('Error')) return
 
     summary.value = data
-    emit('update-sugestions', data.follow_up_questions)
+    if(!currentResponse){
+      emit('update-sugestions', data.follow_up_questions)
+    }
     emit('update-red-flag-terms', data.red_flag_terms)
   } catch (error) {
     console.error(error)

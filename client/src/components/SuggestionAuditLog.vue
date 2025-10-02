@@ -80,7 +80,7 @@ const createAuditLog = async (suggestion, response, sessionId) => {
   }
 }
 
-watch(() => suggestion, (newSuggestion) => {
+watch(() => [suggestion, actualResponse], ([newSuggestion, actualResponse]) => {
   console.log({newSuggestion, actualResponse})
   if (newSuggestion && actualResponse && sessionId && !suggestionsSet.value.has(newSuggestion)) {
     suggestionsSet.value.add(newSuggestion)

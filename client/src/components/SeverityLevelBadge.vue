@@ -8,8 +8,8 @@
 import { computed } from 'vue';
 
 const { level } = defineProps({level: {
-    type: String,
-    default: ''
+    type: Number,
+    default: 5
 }})
 
 const items = [
