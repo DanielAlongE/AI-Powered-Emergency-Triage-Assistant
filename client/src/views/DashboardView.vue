@@ -25,6 +25,7 @@
           @update-red-flag-terms="updateRedFlags"
           :conversations="conversations"
           :summaryBase="summary"
+          :currentResponse="actualResponse"
         />
       </v-col>
     </v-row>
@@ -33,7 +34,7 @@
 </template>
 
 <script setup>
-import { computed, inject, ref, onMounted } from 'vue'
+import { computed, inject, ref, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import ChatConversation from '@/components/ChatConversation.vue'
 import VoskAudioTranscriber from '@/components/VoskAudioTranscriber.vue'
@@ -63,21 +64,20 @@ const apiUrl = inject('$apiUrl')
 
 const transcript = ref('')
 const conversations = ref([])
-const suggestion = ref('Start by introducing yourself as the nurse!')
+const suggestion = ref('')
 const redFlagTerms = ref({})
 const summary = ref({})
+const actualResponse = ref(null)
 
 const redFlagWords = computed(() => Object.values(redFlagTerms.value))
 
-const actualResponse = computed(() => {
-  const lastMessage = conversations.value.at(-1)
-
-  if (lastMessage && ['NURSE', 'assistant'].includes(lastMessage.role)) {
-    return lastMessage.content
-  }
-
-  return null
+watch(conversations, (convo) => {
+  const lastMessage = convo.at(-1)
+  const hasNurseResponse = lastMessage && ['NURSE', 'assistant'].includes(lastMessage.role)
+  actualResponse.value = hasNurseResponse ? lastMessage.content : null
 })
+
+console.log({response: actualResponse.value})
 
 const updateTranscript = (newTranscript) => {
   transcript.value = newTranscript
@@ -92,13 +92,16 @@ const updateSuggestions = (suggestions) => {
 }
 
 const updateRedFlags = (flags) => {
-  console.log({ flags })
   flags.forEach((f) => {
     redFlagTerms.value[f] = f
   })
 }
 
 onMounted(async () => {
+  if(!transcript.value){
+    suggestion.value = 'Start by introducing yourself as the nurse!'
+  }
+
   try {
     const response = await fetch(`${apiUrl}/api/v1/sessions/${sessionId}`)
     if (response.ok) {

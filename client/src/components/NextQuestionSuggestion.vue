@@ -19,6 +19,6 @@ watch(() => props.suggestion, () => {
   if (timeoutId) clearTimeout(timeoutId)
   timeoutId = setTimeout(() => {
     isGrey.value = true
-  }, 120000)
+  }, 60000)
 }, { immediate: true })
 </script>

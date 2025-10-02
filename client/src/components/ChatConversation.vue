@@ -15,6 +15,7 @@
           :primary="['NURSE', 'assistant'].includes(msg.role)"
         />
         <v-skeleton-loader v-if="loading" type="text"></v-skeleton-loader>
+        <v-skeleton-loader v-if="loading" type="text"></v-skeleton-loader>
       </div>
     </v-card-text>
   </v-card>
@@ -69,6 +70,7 @@ const sendTranscript = async () => {
   if (!props.transcript.trim()) return
 
   try {
+    scrollToBottom()
     loading.value = true
     const response = await fetch(`${apiUrl}/api/v1/conversation?session_id=${sessionId}`, {
       method: 'POST',
@@ -88,7 +90,7 @@ const sendTranscript = async () => {
 }
 
 // Debounced version of sendTranscript with 2-second delay
-const debouncedSendTranscript = debounce(sendTranscript, 2000)
+const debouncedSendTranscript = debounce(sendTranscript, 1000)
 
 // Watch for transcript changes and call debounced function
 watch(() => props.transcript, debouncedSendTranscript)
