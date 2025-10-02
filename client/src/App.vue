@@ -1,9 +1,10 @@
 <script setup>
-import { RouterView } from 'vue-router'
+import { RouterView, useRouter } from 'vue-router'
 import { useTheme } from 'vuetify'
 
 // RouterLink,
 
+const router = useRouter()
 const theme = useTheme()
 
 const toggleTheme = () => {
@@ -18,7 +19,7 @@ const toggleTheme = () => {
         <v-app-bar-nav-icon></v-app-bar-nav-icon>
       </template>
 
-      <v-app-bar-title>AI-Powered Emergency Triage Assistant</v-app-bar-title>
+      <v-app-bar-title @click="router.push('/')" style="cursor: pointer;">AI-Powered Emergency Triage Assistant</v-app-bar-title>
 
       <template v-slot:append>
         <v-btn icon @click="toggleTheme">
