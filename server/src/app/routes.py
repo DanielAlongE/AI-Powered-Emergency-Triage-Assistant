@@ -9,11 +9,11 @@ from datetime import datetime, timezone
 import asyncio
 import json
 import numpy as np
-from app.schemas import ConversationResponse, ConversationRequest, TranscriptionRequest, TranscriptionResponse, SessionCreate, SessionResponse, SessionUpdate, TriageSummaryRequest
+from app.schemas import ConversationResponse, ConversationRequest, TranscriptionRequest, TranscriptionResponse, SessionCreate, SessionResponse, SessionUpdate, TriageSummaryRequest, AuditLogCreate, AuditLogResponse, AuditLogUpdate
 from models.llama import ConversationAnalizer, MODEL_GEMMA_3, MODEL_GPT_4O
 from models.transcription import VoskTranscriber
 from .database import SessionLocal
-from .models import Session as SessionModel
+from .models import Session as SessionModel, AuditLog
 from config import get_settings
 
 
@@ -156,3 +156,43 @@ async def delete_session(session_id: UUID, db: DBSession = Depends(get_db)):
     db.delete(session)
     db.commit()
     return {"message": "Session deleted"}
+
+# AuditLog CRUD endpoints
+@router.post("/v1/audit-logs", response_model=AuditLogResponse)
+async def create_audit_log(audit_log: AuditLogCreate, db: DBSession = Depends(get_db)):
+    db_audit_log = AuditLog(**audit_log.model_dump())
+    db.add(db_audit_log)
+    db.commit()
+    db.refresh(db_audit_log)
+    return db_audit_log
+
+@router.get("/v1/audit-logs", response_model=List[AuditLogResponse])
+async def list_audit_logs(db: DBSession = Depends(get_db)):
+    return db.query(AuditLog).order_by(AuditLog.created_at.desc()).all()
+
+@router.get("/v1/audit-logs/{audit_log_id}", response_model=AuditLogResponse)
+async def get_audit_log(audit_log_id: UUID, db: DBSession = Depends(get_db)):
+    audit_log = db.query(AuditLog).filter(AuditLog.id == audit_log_id).first()
+    if not audit_log:
+        raise HTTPException(status_code=404, detail="Audit log not found")
+    return audit_log
+
+@router.put("/v1/audit-logs/{audit_log_id}", response_model=AuditLogResponse)
+async def update_audit_log(audit_log_id: UUID, audit_log_update: AuditLogUpdate, db: DBSession = Depends(get_db)):
+    audit_log = db.query(AuditLog).filter(AuditLog.id == audit_log_id).first()
+    if not audit_log:
+        raise HTTPException(status_code=404, detail="Audit log not found")
+    for key, value in audit_log_update.model_dump(exclude_unset=True).items():
+        setattr(audit_log, key, value)
+    db.commit()
+    db.refresh(audit_log)
+    return audit_log
+
+@router.delete("/v1/audit-logs/{audit_log_id}")
+async def delete_audit_log(audit_log_id: UUID, db: DBSession = Depends(get_db)):
+    audit_log = db.query(AuditLog).filter(AuditLog.id == audit_log_id).first()
+    if not audit_log:
+        raise HTTPException(status_code=404, detail="Audit log not found")
+    db.delete(audit_log)
+    db.commit()
+    return {"message": "Audit log deleted"}
