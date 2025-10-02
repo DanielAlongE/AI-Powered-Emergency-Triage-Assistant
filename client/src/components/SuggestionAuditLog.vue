@@ -63,13 +63,13 @@ const createAuditLog = async (suggestion, response, sessionId) => {
       similarity: 0 // Default similarity, can be calculated later if needed
     }
 
-    const response = await fetch(`${apiUrl}/api/v1/audit-logs`, {
+    const res = await fetch(`${apiUrl}/api/v1/audit-logs`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(auditLogData)
     })
 
-    if (response.ok) {
+    if (res.ok) {
       // Optionally refresh the table
       fetchAuditLogs()
     } else {
@@ -81,6 +81,7 @@ const createAuditLog = async (suggestion, response, sessionId) => {
 }
 
 watch(() => suggestion, (newSuggestion) => {
+  console.log({newSuggestion, actualResponse})
   if (newSuggestion && actualResponse && sessionId && !suggestionsSet.value.has(newSuggestion)) {
     suggestionsSet.value.add(newSuggestion)
     createAuditLog(newSuggestion, actualResponse, sessionId)
