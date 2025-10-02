@@ -87,10 +87,8 @@ const redFlagWords = computed(() => Object.values(redFlagTerms.value))
 watch(conversations, (convo) => {
   const lastMessage = convo.at(-1)
   const hasNurseResponse = lastMessage && ['NURSE', 'assistant'].includes(lastMessage.role)
-  actualResponse.value = hasNurseResponse ? lastMessage.content : null
+  actualResponse.value = hasNurseResponse ? lastMessage?.content : null
 })
-
-console.log({response: actualResponse.value})
 
 const updateTranscript = (newTranscript) => {
   transcript.value = newTranscript
