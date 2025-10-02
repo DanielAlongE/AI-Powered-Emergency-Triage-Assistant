@@ -1,5 +1,8 @@
 <template>
   <div>
+    <v-alert type="info" variant="outlined" class="mb-4">
+      This application is not clinically approved and should be used for experimental purposes only
+    </v-alert>
     <NextQuestionSuggestion :suggestion="suggestion" />
     <v-row>
       <v-col cols="4">
