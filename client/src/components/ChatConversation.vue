@@ -15,10 +15,18 @@
           :primary="['NURSE', 'assistant'].includes(msg.role)"
         />
         <v-skeleton-loader v-if="loading" type="text"></v-skeleton-loader>
-        <v-skeleton-loader v-if="loading" type="text"></v-skeleton-loader>
       </div>
     </v-card-text>
   </v-card>
+
+  <v-snackbar v-model="snackbar" :timeout="6000">
+    {{ snackbarMessage }}
+    <template v-slot:action="{ attrs }">
+      <v-btn color="blue" text v-bind="attrs" @click="snackbar = false">
+        Close
+      </v-btn>
+    </template>
+  </v-snackbar>
 </template>
 
 <script setup>
@@ -44,6 +52,8 @@ const route = useRoute()
 const messages = ref([])
 const loading = ref(false)
 const scrollContainer = ref(null)
+const snackbar = ref(false)
+const snackbarMessage = ref('')
 
 const sessionId = route.params.sessionId
 
@@ -83,7 +93,9 @@ const sendTranscript = async () => {
     emit('update-conversations', messages.value)
     scrollToBottom()
   } catch (error) {
-    console.error('Error sending transcript:', error)
+    console.error('Error fetching conversation:', error)
+    snackbarMessage.value = 'Error fetching conversation'
+    snackbar.value = true
   } finally {
     loading.value = false
   }

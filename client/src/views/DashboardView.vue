@@ -30,6 +30,14 @@
       </v-col>
     </v-row>
     <SuggestionAuditLog :suggestion="suggestion" :actualResponse="actualResponse" />
+    <v-snackbar v-model="showSnackbar" :timeout="5000">
+      {{ snackbarMessage }}
+      <template v-slot:action="{ attrs }">
+        <v-btn color="blue" text v-bind="attrs" @click="showSnackbar = false">
+          Close
+        </v-btn>
+      </template>
+    </v-snackbar>
   </div>
 </template>
 
@@ -68,6 +76,8 @@ const suggestion = ref('')
 const redFlagTerms = ref({})
 const summary = ref({})
 const actualResponse = ref(null)
+const showSnackbar = ref(false)
+const snackbarMessage = ref('')
 
 const redFlagWords = computed(() => Object.values(redFlagTerms.value))
 
@@ -113,9 +123,13 @@ onMounted(async () => {
       console.log(conversations.value, sessionData)
     } else {
       console.error('Failed to fetch session data')
+      snackbarMessage.value = 'Failed to fetch session data'
+      showSnackbar.value = true
     }
   } catch (error) {
     console.error('Error fetching session data:', error)
+    snackbarMessage.value = `Error fetching session data: ${error.message}`
+    showSnackbar.value = true
   }
 })
 </script>
