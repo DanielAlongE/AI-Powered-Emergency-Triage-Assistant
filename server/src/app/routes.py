@@ -70,7 +70,7 @@ async def transcribe(
 
 
 @router.post("/v1/triage-summary", response_model=ESIAssessment)
-async def triage_summary(request: TriageSummaryRequest, session_id: Optional[UUID] = None, db: DBSession = Depends(get_db)) -> ESIAssessment:
+async def triage_summary(request: TriageSummaryRequest, session_id: Optional[UUID] = None, db: DBSession = Depends(get_db)):
     option = {}
 
     if get_settings().online_mode:
@@ -85,7 +85,7 @@ async def triage_summary(request: TriageSummaryRequest, session_id: Optional[UUI
     if session_id and "Error" not in result.rationale:
         session = db.query(SessionModel).filter(SessionModel.id == session_id).first()
         if session:
-            session.summary = json.dumps(result.model_dump())
+            session.summary = json.dumps(result.model_dump(mode='json'))
             session.updated_at = datetime.now(timezone.utc)
             db.commit()
 
@@ -107,7 +107,7 @@ async def converstaion(request: ConversationRequest, session_id: Optional[UUID] 
             session = db.query(SessionModel).filter(SessionModel.id == session_id).first()
             if session:
                 session.transcript = request.transcript
-                session.conversation = json.dumps(conversation_result.model_dump())
+                session.conversation = json.dumps(conversation_result.model_dump(mode='json'))
                 session.updated_at = datetime.now(timezone.utc)
                 db.commit()
 

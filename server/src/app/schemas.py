@@ -32,6 +32,9 @@ class SessionCreate(BaseModel):
 class SessionResponse(BaseModel):
     id: UUID
     name: str
+    transcript: Optional[str]
+    conversation: Optional[str]
+    summary: Optional[str]
     created_at: datetime
 
 class SessionUpdate(BaseModel):
