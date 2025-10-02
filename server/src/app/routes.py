@@ -162,10 +162,14 @@ async def delete_session(session_id: UUID, db: DBSession = Depends(get_db)):
 @router.post("/v1/audit-logs", response_model=AuditLogResponse)
 async def create_audit_log(audit_log: AuditLogCreate, db: DBSession = Depends(get_db)):
     model = MODEL_GPT_4O if get_settings().online_mode else MODEL_GEMMA_3
-    result = ConversationAnalizer(model).similarity_analysis(audit_log.suggestion, audit_log.response)
-    similarity = result.get('similarity', 5)
-    
-    db_audit_log = AuditLog(**audit_log.model_dump(), similarity=similarity)
+    try:
+        result = ConversationAnalizer(model).similarity_analysis(audit_log.suggestion, audit_log.response)
+        similarity = result.get('similarity', 5) if isinstance(result, dict) else 5
+    except Exception as e:
+        print(e)
+        similarity = 5  # Default similarity in case of error
+
+    db_audit_log = AuditLog(**audit_log.model_dump(exclude={'similarity'}), similarity=similarity)
     db.add(db_audit_log)
     db.commit()
     db.refresh(db_audit_log)
