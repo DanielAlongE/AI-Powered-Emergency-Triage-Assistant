@@ -3,9 +3,11 @@ from agents.implementations.handbook_rag_openai_agent import HandbookRagOpenAiAg
 from fastapi import APIRouter, File, Form, UploadFile, HTTPException, Depends
 from models.esi_assessment import ConversationTurn, ESIAssessment, MedicalConversation
 from sqlalchemy.orm import Session as DBSession
-from typing import List
+from typing import List, Optional
 from uuid import UUID
+from datetime import datetime, timezone
 import asyncio
+import json
 import numpy as np
 from app.schemas import ConversationResponse, ConversationRequest, TranscriptionRequest, TranscriptionResponse, SessionCreate, SessionResponse, SessionUpdate, TriageSummaryRequest
 from models.llama import ConversationAnalizer, MODEL_GEMMA_3, MODEL_GPT_4O
@@ -67,17 +69,8 @@ async def transcribe(
     return TranscriptionResponse(transcript=transcript)
 
 
-# return the most apropriate response based on red-flag words and conversation context
-# @router.post("/v1/suggestions", response_model=SuggestionResponse)
-# async def suggestions(session_id: str = Form(...)) -> SuggestionResponse:
-#     pass
-
-
-# @router.post("/v1/feedback")
-# async def feedback(feedback: NurseFeedback) -> dict:
-
 @router.post("/v1/triage-summary", response_model=ESIAssessment)
-async def triage_summary(request: TriageSummaryRequest):
+async def triage_summary(request: TriageSummaryRequest, session_id: Optional[UUID] = None, db: DBSession = Depends(get_db)) -> ESIAssessment:
     option = {}
 
     if get_settings().online_mode:
@@ -87,6 +80,15 @@ async def triage_summary(request: TriageSummaryRequest):
 
     # Run the synchronous triage method in a thread pool to avoid blocking
     result = await asyncio.to_thread(agent.triage, conversation=MedicalConversation(turns=request.turns))
+
+    # Save result to session summary if session_id provided and rationale does not contain "Error"
+    if session_id and "Error" not in result.rationale:
+        session = db.query(SessionModel).filter(SessionModel.id == session_id).first()
+        if session:
+            session.summary = json.dumps(result.model_dump())
+            session.updated_at = datetime.now(timezone.utc)
+            db.commit()
+
     return result
 
     
@@ -95,10 +97,21 @@ async def triage_summary(request: TriageSummaryRequest):
 # given a transcription text, return an array of chat like conversation between the nurse and patient
 # we have the option of either using the converstation_analizer based on llama3.2
 @router.post("/v1/conversation", response_model=ConversationResponse)
-async def converstaion(request: ConversationRequest) -> ConversationResponse:
+async def converstaion(request: ConversationRequest, session_id: Optional[UUID] = None, db: DBSession = Depends(get_db)) -> ConversationResponse:
     try:
-        model = MODEL_GPT_4O if get_settings().online_mode else MODEL_GEMMA_3 
-        return ConversationAnalizer(model).analyze(request.transcript)
+        model = MODEL_GPT_4O if get_settings().online_mode else MODEL_GEMMA_3
+        conversation_result = ConversationAnalizer(model).analyze(request.transcript)
+
+        # Update session with transcript and conversation if session_id is provided
+        if session_id:
+            session = db.query(SessionModel).filter(SessionModel.id == session_id).first()
+            if session:
+                session.transcript = request.transcript
+                session.conversation = json.dumps(conversation_result.model_dump())
+                session.updated_at = datetime.now(timezone.utc)
+                db.commit()
+
+        return conversation_result
     except Exception as e:
         print(e)
         return {'converstaion': []}
