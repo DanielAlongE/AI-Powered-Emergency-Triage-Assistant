@@ -25,6 +25,7 @@
 </template>
 <script setup>
 import { computed, inject, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
 
 const { conversations } = defineProps({
   conversations: {
@@ -35,9 +36,13 @@ const { conversations } = defineProps({
 
 const emit = defineEmits(['update-sugestions', 'update-red-flag-terms'])
 
+const route = useRoute()
 const loading = ref(false)
 const apiUrl = inject('$apiUrl')
 const summary = ref({})
+
+const sessionId = route.params.sessionId
+
 
 const tableItems = computed(() => {
   return conversations.map((conv) => ({
@@ -51,7 +56,7 @@ const fetchSummary = async () => {
 
   try {
     loading.value = true
-    const response = await fetch(`${apiUrl}/api/v1/triage-summary`, {
+    const response = await fetch(`${apiUrl}/api/v1/triage-summary?session_id=${sessionId}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ turns: tableItems.value }),

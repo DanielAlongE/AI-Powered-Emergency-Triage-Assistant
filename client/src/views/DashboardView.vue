@@ -21,7 +21,6 @@
         <TriageSummary
           @update-sugestions="updateSuggestions"
           @update-red-flag-terms="updateRedFlags"
-          :conversations="conversations"
         />
       </v-col>
     </v-row>
