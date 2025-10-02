@@ -22,6 +22,7 @@
 
 <script setup>
 import { ref, inject, watch, nextTick } from 'vue'
+import { useRoute } from 'vue-router'
 import ChatBubble from '@/components/ChatBubble.vue'
 
 const props = defineProps({
@@ -29,14 +30,22 @@ const props = defineProps({
     type: String,
     default: '',
   },
+  conversationBase: {
+    type: Array,
+    default: () => []
+  }
 })
 
 const apiUrl = inject('$apiUrl')
 const emit = defineEmits(['update-conversations'])
 
+const route = useRoute()
 const messages = ref([])
 const loading = ref(false)
 const scrollContainer = ref(null)
+
+const sessionId = route.params.sessionId
+
 
 // Function to scroll to bottom
 const scrollToBottom = () => {
@@ -61,7 +70,7 @@ const sendTranscript = async () => {
 
   try {
     loading.value = true
-    const response = await fetch(`${apiUrl}/api/v1/conversation`, {
+    const response = await fetch(`${apiUrl}/api/v1/conversation?session_id=${sessionId}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ transcript: props.transcript }),
@@ -83,6 +92,10 @@ const debouncedSendTranscript = debounce(sendTranscript, 2000)
 
 // Watch for transcript changes and call debounced function
 watch(() => props.transcript, debouncedSendTranscript)
+
+watch(() => props.conversationBase, () => {
+  messages.value = props.conversationBase
+})
 </script>
 
 <style>

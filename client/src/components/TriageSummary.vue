@@ -27,11 +27,15 @@
 import { computed, inject, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 
-const { conversations } = defineProps({
+const { conversations, summaryBase } = defineProps({
   conversations: {
     type: Array,
     default: () => [],
   },
+  summaryBase: {
+    type: Object,
+    default: () => {}
+  }
 })
 
 const emit = defineEmits(['update-sugestions', 'update-red-flag-terms'])
@@ -74,6 +78,11 @@ const fetchSummary = async () => {
     loading.value = false
   }
 }
+
+
+watch(() => summaryBase, () => {
+  summary.value = summaryBase
+})
 
 watch(() => conversations, fetchSummary)
 </script>

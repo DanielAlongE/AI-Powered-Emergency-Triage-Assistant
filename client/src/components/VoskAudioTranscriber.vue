@@ -24,8 +24,9 @@ import { ref, inject, markRaw, onUnmounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import HighlightTextarea from '@/components/HighlightTextarea.vue'
 
-const { redFlags } = defineProps({
+const { redFlags, transcriptBase } = defineProps({
   redFlags: { type: Array, default: () => [] },
+  transcriptBase: { type: String, default: '' },
 })
 
 const emit = defineEmits(['update-transcript'])
@@ -53,7 +54,16 @@ onUnmounted(() => {
   }
 })
 
-watch(transcript, () => emit('update-transcript', transcript.value))
+watch(transcript, () => {
+  if(transcript.value === transcriptBase) return
+
+  emit('update-transcript', transcript.value)
+})
+
+watch(() => transcriptBase, () => {
+  transcript.value = transcriptBase
+})
+
 
 const checkSilence = () => {
   if (!analyser.value || !isRecording.value) return

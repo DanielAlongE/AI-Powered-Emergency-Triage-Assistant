@@ -3,8 +3,10 @@ import { ref, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import HighlightTextarea from '@/components/HighlightTextarea.vue'
 
-const { redFlags } = defineProps({
+
+const { redFlags, transcriptBase } = defineProps({
   redFlags: { type: Array, default: () => [] },
+  transcriptBase: { type: String, default: '' },
 })
 
 const emit = defineEmits(['update-transcript'])
@@ -17,7 +19,15 @@ const recognition = ref(null)
 
 const sessionId = route.params.sessionId
 
-watch(transcript, () => emit('update-transcript', transcript.value))
+watch(transcript, () => {
+  if(transcript.value === transcriptBase) return
+  emit('update-transcript', transcript.value)
+})
+
+watch(() => transcriptBase, () => {
+  transcript.value = transcriptBase
+})
+
 
 onMounted(() => {
   if (('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) && navigator.onLine) {
