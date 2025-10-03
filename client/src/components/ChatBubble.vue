@@ -6,6 +6,7 @@ defineProps({ content: String, primary: Boolean })
   <div class="container">
     <v-card-text :class="['bubble', primary ? 'bg-primary primary' : 'bg-accent']">
       {{ content }}
+      <slot></slot>
     </v-card-text>
   </div>
 </template>
