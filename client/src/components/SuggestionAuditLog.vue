@@ -40,7 +40,7 @@ const headers = [
 const fetchAuditLogs = async () => {
   try {
     loading.value = true
-    const response = await fetch(`${apiUrl}/api/v1/audit-logs`)
+    const response = await fetch(`${apiUrl}/api/v1/audit-logs?session_id=${sessionId}`)
     const data = await response.json()
     tableItems.value = data
   } catch (error) {
