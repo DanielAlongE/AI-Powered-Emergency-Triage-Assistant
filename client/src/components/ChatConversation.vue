@@ -15,7 +15,7 @@
           :primary="NURSE_OR_ASSISTANT.includes(msg.role)"
         />
         <ChatBubble v-if="loading" :primary="loadingChatBubbleIsPrimary">
-          <v-skeleton-loader :color="loadingChatBubbleIsPrimary ? 'primary' : 'secondary'" type="paragraph"></v-skeleton-loader>
+          <v-skeleton-loader style="opacity: 0.5;" :color="loadingChatBubbleIsPrimary ? 'primary' : 'secondary'" type="text"></v-skeleton-loader>
         </ChatBubble>
       </div>
     </v-card-text>
