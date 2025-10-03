@@ -125,7 +125,6 @@ onMounted(async () => {
       summary.value = safeJsonParse(sessionData.summary)
       conversations.value = safeJsonParse(sessionData.conversation)['conversation'] || []
 
-      console.log(conversations.value, sessionData)
     } else {
       console.error('Failed to fetch session data')
       snackbarMessage.value = 'Failed to fetch session data'
