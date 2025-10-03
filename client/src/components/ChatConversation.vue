@@ -12,9 +12,11 @@
           v-for="(msg, index) in messages"
           :key="index"
           :content="msg.content"
-          :primary="['NURSE', 'assistant'].includes(msg.role)"
+          :primary="NURSE_OR_ASSISTANT.includes(msg.role)"
         />
-        <v-skeleton-loader v-if="loading" type="text"></v-skeleton-loader>
+        <ChatBubble v-if="loading" :primary="loadingChatBubbleIsPrimary">
+          <v-skeleton-loader :color="loadingChatBubbleIsPrimary ? 'primary' : 'secondary'" type="paragraph"></v-skeleton-loader>
+        </ChatBubble>
       </div>
     </v-card-text>
   </v-card>
@@ -28,7 +30,7 @@
 </template>
 
 <script setup>
-import { ref, inject, watch, nextTick } from 'vue'
+import { ref, inject, watch, nextTick, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import ChatBubble from '@/components/ChatBubble.vue'
 
@@ -43,6 +45,7 @@ const props = defineProps({
   },
 })
 
+
 const apiUrl = inject('$apiUrl')
 const emit = defineEmits(['update-conversations'])
 
@@ -52,6 +55,13 @@ const loading = ref(false)
 const scrollContainer = ref(null)
 const snackbar = ref(false)
 const snackbarMessage = ref('')
+
+const NURSE_OR_ASSISTANT = ['NURSE', 'assistant']
+
+const loadingChatBubbleIsPrimary = computed(() => {
+  const lastMessage = messages.value.at(-1)
+  return !(lastMessage && NURSE_OR_ASSISTANT.includes(lastMessage.role))
+})
 
 const sessionId = route.params.sessionId
 
@@ -77,8 +87,8 @@ const sendTranscript = async () => {
   if (!props.transcript.trim()) return
 
   try {
-    scrollToBottom()
     loading.value = true
+    scrollToBottom()
     const response = await fetch(`${apiUrl}/api/v1/conversation?session_id=${sessionId}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
