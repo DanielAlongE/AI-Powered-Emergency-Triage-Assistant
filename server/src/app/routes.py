@@ -176,8 +176,11 @@ async def create_audit_log(audit_log: AuditLogCreate, db: DBSession = Depends(ge
     return db_audit_log
 
 @router.get("/v1/audit-logs", response_model=List[AuditLogResponse])
-async def list_audit_logs(db: DBSession = Depends(get_db)):
-    return db.query(AuditLog).order_by(AuditLog.created_at.desc()).all()
+async def list_audit_logs(session_id: Optional[UUID] = None, db: DBSession = Depends(get_db)):
+    query = db.query(AuditLog)
+    if session_id:
+        query = query.filter(AuditLog.session_id == session_id)
+    return query.order_by(AuditLog.created_at.desc()).all()
 
 @router.get("/v1/audit-logs/{audit_log_id}", response_model=AuditLogResponse)
 async def get_audit_log(audit_log_id: UUID, db: DBSession = Depends(get_db)):
