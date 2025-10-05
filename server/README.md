@@ -61,27 +61,11 @@ poetry run alembic upgrade head
 ## Run Server Project
 
 ```
+# development
 poetry run uvicorn app.main:app
-```
-
-## Add New Dependency
-
-```
-poetry add {new-dependency}
-```
-
-## Remove Dependency
-
-```
-poetry remove {new-dependency}
-```
-
-## Run a python script
-
-```
-poetry run python my_script.py
 
 # or 
 
-python -m my_package.module1
+# production
+poetry run uvicorn app.main:app --host 0.0.0.0 --port 8080 --workers 4
 ```
