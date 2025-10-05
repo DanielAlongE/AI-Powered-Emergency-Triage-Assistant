@@ -1,4 +1,40 @@
 
+## Prerequisites
+
+### Install Ollama
+Follow the installation instructions at [https://ollama.ai/](https://ollama.ai/)
+
+### Pull Ollama Models
+```
+ollama pull llama3.2
+ollama pull gpt-oss:20b
+ollama pull gemma3
+```
+
+### Install FFmpeg
+```
+# macOS
+brew install ffmpeg
+
+# Ubuntu/Debian
+sudo apt update && sudo apt install ffmpeg
+
+# Windows
+# Download from https://ffmpeg.org/download.html#build-windows
+```
+
+### Install SQLite
+```
+# macOS
+brew install sqlite
+
+# Ubuntu/Debian
+sudo apt update && sudo apt install sqlite3
+
+# Windows
+# SQLite is usually pre-installed or download from https://www.sqlite.org/download.html
+```
+
 ## Install Poetry
 This will make poetry available globally
 ```
@@ -15,12 +51,17 @@ cd  server
 poetry install
 ```
 
+## Database Setup
+```
+poetry run ingest
+sqlite3 sessions.db ".quit"
+poetry run alembic upgrade head
+```
 
 ## Run Server Project
 
 ```
-cd  server
-poetry run uvicorn app.main:app --reload
+poetry run uvicorn app.main:app
 ```
 
 ## Add New Dependency
