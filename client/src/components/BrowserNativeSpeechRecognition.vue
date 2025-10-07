@@ -15,6 +15,7 @@ const route = useRoute()
 const transcript = ref('')
 const isListening = ref(false)
 const recognition = ref(null)
+const manuallyStopped = ref(false)
 
 const sessionId = route.params.sessionId
 
@@ -40,6 +41,7 @@ onMounted(() => {
 
     recognition.value.onstart = () => {
       isListening.value = true
+      manuallyStopped.value = false
     }
 
     recognition.value.onresult = (event) => {
@@ -56,11 +58,20 @@ onMounted(() => {
 
     recognition.value.onend = () => {
       isListening.value = false
+      if (!manuallyStopped.value) {
+        // Restart recognition to maintain continuous listening
+        recognition.value.start()
+      }
     }
 
     recognition.value.onerror = (event) => {
-      console.error('Speech recognition error:', event.error)
-      isListening.value = false
+      if (event.error === 'no-speech' && isListening.value) {
+        // Restart recognition to maintain continuous listening despite silence
+        recognition.value.start()
+      } else {
+        console.error('Speech recognition error:', event.error)
+        isListening.value = false
+      }
     }
   } else {
     router.push(`/vosk/${sessionId}`)
@@ -70,12 +81,14 @@ onMounted(() => {
 
 const startListening = () => {
   if (recognition.value && !isListening.value) {
+    manuallyStopped.value = false
     recognition.value.start()
   }
 }
 
 const stopListening = () => {
   if (recognition.value && isListening.value) {
+    manuallyStopped.value = true
     recognition.value.stop()
   }
 }
